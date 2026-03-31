@@ -12,7 +12,11 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AIInsight: typeof import('./src/components/AIAnalysis/AIInsight.vue')['default']
+    BaseChart: typeof import('./src/components/Charts/BaseChart.vue')['default']
+    ChartConfigDialog: typeof import('./src/components/Charts/ChartConfigDialog.vue')['default']
     ChartWidget: typeof import('./src/components/Dashboard/ChartWidget.vue')['default']
+    ElSplitter: typeof import('element-plus/es')['ElSplitter']
+    ElSplitterPanel: typeof import('element-plus/es')['ElSplitterPanel']
     GridLayout: typeof import('./src/components/Dashboard/GridLayout.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']

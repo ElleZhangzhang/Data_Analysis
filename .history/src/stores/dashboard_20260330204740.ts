@@ -1,0 +1,47 @@
+import { defineStore } from 'pinia'
+import type { ChartConfig } from '@/types'
+
+import { ref } from 'vue'
+import type { Ref } from 'vue'
+
+
+// import { useDataStore } from '@/stores/data'
+// const dataStore = useDataStore();
+// const { currentDataset } = dataStore;
+
+
+export const useDashboardStore = defineStore('dashboard', () => {
+  const charts: Ref<ChartConfig[]> = ref([])
+
+  // 一会儿再看
+  const getChartsByDataset = (datasetId: string) => {
+    console.log('currentDataset更新了:', datasetId);
+
+    const getCharts = charts.value.filter(chart => chart.datasetId === datasetId)
+
+    console.log(getCharts);
+
+    return getCharts
+  }
+
+  // 添加图表
+  const addChart = (chart: ChartConfig) => {
+    charts.value.push(chart)
+    console.log('chartConfig', charts.value);
+    // console.log('currentDataset', currentDataset.value);
+  }
+
+  // 删除图表
+  const deleteChart = (chartId: string) => {
+    charts.value = charts.value.filter(c => c.id !== chartId)
+  }
+
+  return {
+    charts,
+    getChartsByDataset,
+    addChart,
+    deleteChart
+  }
+}, {
+  persist: true
+})

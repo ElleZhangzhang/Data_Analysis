@@ -1,0 +1,31 @@
+import { defineStore } from 'pinia'
+import type { ChartConfig } from '@/types'
+
+export const useDashboardStore = defineStore('dashboard', () => {
+  const charts: ChartConfig[] = []
+
+  getters: {
+    // 获取当前数据集的图表
+    getChartsByDataset: (state) => (datasetId: string) => {
+      return state.charts.filter(chart => chart.datasetId === datasetId)
+    }
+  }
+
+
+  // 添加图表
+  addChart(chart: ChartConfig) {
+    charts.push(chart)
+  }
+
+  // 删除图表
+  deleteChart(chartId: string) {
+    charts = charts.filter(c => c.id !== chartId)
+  }
+
+  return {
+    charts,
+    getChartsByDataset,
+    addChart,
+    deleteChart
+  }
+})
