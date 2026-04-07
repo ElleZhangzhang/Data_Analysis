@@ -1,10 +1,10 @@
-import type { ColumnDef, DataRow } from '@/types/index'
+
 // TODO: 新增图表推荐函数
 export async function recommendCharts(columns: ColumnDef[], sampleData: DataRow[]) {
   // 步骤1: 构建数据描述
   const dataDescription = columns.map(col => {
     // 从样本数据中提取这一列的值
-    const values = sampleData.slice(0, 5).map(row => row[col.keyName])
+    const values = sampleData.slice(0, 5).map(row => row[col.key])
     return {
       name: col.label,
       type: col.type,

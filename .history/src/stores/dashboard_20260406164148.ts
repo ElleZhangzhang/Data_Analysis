@@ -30,22 +30,11 @@ export const useDashboardStore = defineStore('dashboard', () => {
     charts.value = charts.value.filter(c => c.id !== chartId)
   }
 
-  const updateChartPosition = function (chartId: string, position: { x: number; y: number }) {
-    // 提示:
-    // 1. 用 find 找到对应的图表
-    const newPostionChart = charts.value.find(c => c.id === chartId)
-    // 2. 更新它的 position 属性
-    if (newPostionChart) {
-      newPostionChart.position = position
-    }
-  }
-
   return {
     charts,
     getChartsByDataset,
     addChart,
-    deleteChart,
-    updateChartPosition
+    deleteChart
   }
 }, {
   persist: true

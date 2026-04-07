@@ -1,23 +1,12 @@
 <script setup lang="ts">
-// ECharts渲染_import
+import { ref, onMounted, watch, onUnmounted } from "vue";
+// ECharts_import
 //#region
-import { ref, onMounted, watch, onUnmounted, computed } from "vue";
 import * as echarts from "echarts";
 import type { ECharts } from "echarts";
 import type { ChartConfig, DataRow } from "@/types/index";
 
 import { useDataStore } from "@/stores/data";
-//#endregion
-
-// 图表拖拽_import
-//#region
-import { useDrag } from "@/composables/useDrag";
-import { useDashboardStore } from "@/stores/dashboard";
-//#endregion
-
-const containerRef = ref<HTMLDivElement>(); // 整个卡片的 ref
-const dashboardStore = useDashboardStore();
-
 const dataStore = useDataStore();
 const { currentDataset } = dataStore;
 
@@ -31,27 +20,9 @@ const props = defineProps<Props>();
 const chartRef = ref<HTMLDivElement>();
 let chartInstance: ECharts | null = null;
 
-// TODO: 使用 useDrag Hook
-// handleMouseDown
-const { isDragging, position, setPosition, handleMouseDown } = useDrag(
-  containerRef,
-  {
-    gridSize: 20,
-    onDragEnd: (newPos) => {
-      // TODO: 拖拽结束后，保存到 store
-      dashboardStore.updateChartPosition(props.config.id, newPos);
-    },
-  }
-);
-
 // 初始化图表
 onMounted(() => {
   if (!chartRef.value) return;
-
-  // 如果配置里有位置，就用配置的位置
-  if (props.config.position) {
-    setPosition(props.config.position);
-  }
 
   chartInstance = echarts.init(chartRef.value);
   renderChart();
@@ -256,25 +227,10 @@ watch(
   { deep: true }
 );
 //#endregion
-
-// TODO: 计算容器样式
-const containerStyle = computed(() => ({
-  transform: `translate(${position.value.x}px, ${position.value.y}px)`,
-  cursor: isDragging.value ? "grabbing" : "grab",
-  width: props.config.size?.width ? `${props.config.size.width}px` : "500px",
-  height: props.config.size?.height ? `${props.config.size.height}px` : "450px",
-}));
 </script>
 
 <template>
-  <!-- <div class="chart-card"> -->
-  <div
-    ref="containerRef"
-    class="chart-card"
-    :class="{ dragging: isDragging }"
-    @mousedown="handleMouseDown"
-    :style="containerStyle"
-  >
+  <div class="chart-card">
     <!-- 图表容器 -->
     <div ref="chartRef" class="chart-container"></div>
 
@@ -283,7 +239,6 @@ const containerStyle = computed(() => ({
       <button class="delete-btn" @click="$emit('delete')">删除</button>
     </div>
   </div>
-  <!-- </div> -->
 </template>
 
 <style scoped>
@@ -325,11 +280,5 @@ const containerStyle = computed(() => ({
 
 .delete-btn:hover {
   background: #fecaca;
-}
-
-/* 拖拽时的样式 */
-.chart-card.dragging {
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-  z-index: 1000;
 }
 </style>

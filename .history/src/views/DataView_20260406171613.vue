@@ -140,26 +140,26 @@ const currentDataset = dataStore.currentDataset; // 目前默认是第一个
           </div>
 
           <!-- 图表网格 -->
-          <!-- <div
+          <div
             class="charts-grid"
             :class="{ 'has-charts': currentCharts.length > 0 }"
-          > -->
-          <!-- 空状态 -->
-          <p v-if="currentCharts.length === 0" class="empty-hint">
-            点击"创建图表"开始可视化分析
-          </p>
+          >
+            <!-- 空状态 -->
+            <p v-if="currentCharts.length === 0" class="empty-hint">
+              点击"创建图表"开始可视化分析
+            </p>
 
-          <!-- 图表列表 -->
-          <div v-if="currentCharts.length !== 0">
-            <BaseChart
-              v-for="chart in currentCharts"
-              :key="chart.id"
-              :config="chart"
-              :data="currentDataset?.rows"
-              @delete="handleDeleteChart(chart.id)"
-            />
+            <!-- 图表列表 -->
+            <div v-if="currentCharts.length !== 0">
+              <BaseChart
+                v-for="chart in currentCharts"
+                :key="chart.id"
+                :config="chart"
+                :data="currentDataset?.rows"
+                @delete="handleDeleteChart(chart.id)"
+              />
+            </div>
           </div>
-          <!-- </div> -->
         </div>
 
         <!-- #endregion -->

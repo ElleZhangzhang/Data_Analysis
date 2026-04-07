@@ -33,16 +33,13 @@ let chartInstance: ECharts | null = null;
 
 // TODO: 使用 useDrag Hook
 // handleMouseDown
-const { isDragging, position, setPosition, handleMouseDown } = useDrag(
-  containerRef,
-  {
-    gridSize: 20,
-    onDragEnd: (newPos) => {
-      // TODO: 拖拽结束后，保存到 store
-      dashboardStore.updateChartPosition(props.config.id, newPos);
-    },
-  }
-);
+const { isDragging, position, setPosition } = useDrag(containerRef, {
+  gridSize: 20,
+  onDragEnd: (newPos) => {
+    // TODO: 拖拽结束后，保存到 store
+    dashboardStore.updateChartPosition(props.config.id, newPos);
+  },
+});
 
 // 初始化图表
 onMounted(() => {
@@ -267,23 +264,23 @@ const containerStyle = computed(() => ({
 </script>
 
 <template>
-  <!-- <div class="chart-card"> -->
-  <div
-    ref="containerRef"
-    class="chart-card"
-    :class="{ dragging: isDragging }"
-    @mousedown="handleMouseDown"
-    :style="containerStyle"
-  >
-    <!-- 图表容器 -->
-    <div ref="chartRef" class="chart-container"></div>
+  <div class="chart-card">
+    <div
+      ref="containerRef"
+      class="chart-card"
+      :class="{ dragging: isDragging }"
+      @mousedown="handleMouseDown"
+      :style="containerStyle"
+    >
+      <!-- 图表容器 -->
+      <div ref="chartRef" class="chart-container"></div>
 
-    <!-- 操作按钮 -->
-    <div class="chart-actions">
-      <button class="delete-btn" @click="$emit('delete')">删除</button>
+      <!-- 操作按钮 -->
+      <div class="chart-actions">
+        <button class="delete-btn" @click="$emit('delete')">删除</button>
+      </div>
     </div>
   </div>
-  <!-- </div> -->
 </template>
 
 <style scoped>

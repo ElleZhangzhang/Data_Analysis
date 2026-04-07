@@ -267,23 +267,23 @@ const containerStyle = computed(() => ({
 </script>
 
 <template>
-  <!-- <div class="chart-card"> -->
-  <div
-    ref="containerRef"
-    class="chart-card"
-    :class="{ dragging: isDragging }"
-    @mousedown="handleMouseDown"
-    :style="containerStyle"
-  >
-    <!-- 图表容器 -->
-    <div ref="chartRef" class="chart-container"></div>
+  <div class="chart-card">
+    <div
+      ref="containerRef"
+      class="chart-card"
+      :class="{ dragging: isDragging }"
+      @mousedown="handleMouseDown"
+      :style="containerStyle"
+    >
+      <!-- 图表容器 -->
+      <div ref="chartRef" class="chart-container"></div>
 
-    <!-- 操作按钮 -->
-    <div class="chart-actions">
-      <button class="delete-btn" @click="$emit('delete')">删除</button>
+      <!-- 操作按钮 -->
+      <div class="chart-actions">
+        <button class="delete-btn" @click="$emit('delete')">删除</button>
+      </div>
     </div>
   </div>
-  <!-- </div> -->
 </template>
 
 <style scoped>
