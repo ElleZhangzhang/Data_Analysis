@@ -1,8 +1,4 @@
 import type { ColumnDef, DataRow } from '@/types/index'
-
-import { storeToRefs } from 'pinia'
-import { useDataStore } from '@/stores/data'
-
 // TODO: 新增图表推荐函数
 export async function recommendCharts(columns: ColumnDef[], sampleData: DataRow[]) {
   // 步骤1: 构建数据描述
@@ -64,12 +60,7 @@ ${JSON.stringify(dataDescription, null, 2)}
 
     // 步骤4: 解析返回的 JSON
     // 提示：AI 返回可能包含 ```json 标记，需要清理
-    const data = await res.json()  // ✅ 先把 Response 转成 JSON
-    console.log('data: ', data);
-
-    const content = data.choices[0].message.content  // ✅ 再取出 AI 的文本
-    const cleanedResponse = content.replace(/```json|```/g, '').trim()
-
+    const cleanedResponse = res.replace(/```json|```/g, '').trim()
     const result = JSON.parse(cleanedResponse)
 
     return result.recommendations
@@ -78,5 +69,3 @@ ${JSON.stringify(dataDescription, null, 2)}
     throw error
   }
 }
-
-

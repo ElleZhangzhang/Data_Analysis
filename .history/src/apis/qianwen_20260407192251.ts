@@ -72,7 +72,7 @@ ${JSON.stringify(dataDescription, null, 2)}
 
     const result = JSON.parse(cleanedResponse)
 
-    return result.recommendations
+    // return result.recommendations
   } catch (error) {
     console.error('AI 推荐失败:', error)
     throw error

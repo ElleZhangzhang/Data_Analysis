@@ -65,14 +65,14 @@ ${JSON.stringify(dataDescription, null, 2)}
     // 步骤4: 解析返回的 JSON
     // 提示：AI 返回可能包含 ```json 标记，需要清理
     const data = await res.json()  // ✅ 先把 Response 转成 JSON
-    console.log('data: ', data);
+    console.log(data);
 
     const content = data.choices[0].message.content  // ✅ 再取出 AI 的文本
     const cleanedResponse = content.replace(/```json|```/g, '').trim()
 
     const result = JSON.parse(cleanedResponse)
 
-    return result.recommendations
+    // return result.recommendations
   } catch (error) {
     console.error('AI 推荐失败:', error)
     throw error

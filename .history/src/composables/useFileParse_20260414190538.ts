@@ -11,7 +11,7 @@ export function useFileParser() {
   const parseFile = async (file: File): Promise<Dataset> => {
     return new Promise((resolve, reject) => {
       const worker = new Worker(
-        new URL('@/workers/excel-parser.worker.ts', import.meta.url),
+        new URL('../workers/excel-parser.worker.ts', import.meta.url),
         { type: 'module' }
       )
 

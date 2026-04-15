@@ -5,7 +5,7 @@ import type { Dataset } from '@/types/index.ts'
 import {
   getAllDatasetsFromDB,
   upsertDatasetToDB,
-  // deleteDatasetFromDB
+  deleteDatasetFromDB
 } from '@/utils/datasetDB'
 
 // 定义每个数据集
@@ -17,22 +17,26 @@ export const useDataStore = defineStore('data', () => {
   // 定义存储多个数据集的数组
   const datasets = ref<Dataset[]>([])
   const currentDataset = ref<Dataset | null>(null)
+  const loading = ref(false)
 
-  // IndexedDB之初始化回填
-  //#region
-  const hydrated = ref(false) // 是否已从 IndexedDB 完成初始化回填
-  // 首次进入时从 IndexedDB 拉全量数据到 dataset
+  const hydrated = ref(false)
   async function hydrateDatasets() {
     if (hydrated.value) return
-    datasets.value = await getAllDatasetsFromDB() // await发起异步任务，关心返回结果
+    datasets.value = await getAllDatasetsFromDB()
     hydrated.value = true
   }
-  //#endregion
+
 
   function addDataset(data: Dataset): boolean {
-    datasets.value.push(data)
-    void upsertDatasetToDB(data) // void发起异步任务，但不关心返回结果，避免 eslint 报错
-    // 异步任务总得有个东西标识是异步任务，要么await，要么void，不能什么都没有，不然 eslint 会报错
+    // datasets.value.push(data)
+    // return true
+    const index = datasets.value.findIndex(item => item.id === data.id)
+    if (index >= 0) {
+      datasets.value[index] = data
+    } else {
+      datasets.value.push(data)
+    }
+    void upsertDatasetToDB(data)
     return true
   }
 
@@ -63,7 +67,6 @@ export const useDataStore = defineStore('data', () => {
     setCurrentDataset,
     // removeDataset,
   }
-  // 不再依赖 data store 的 persist localStorage，持久化职责转移给 IndexedDB
   // }, {
   //   persist: true
   //

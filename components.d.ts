@@ -14,6 +14,7 @@ declare module 'vue' {
     AIInsight: typeof import('./src/components/AIAnalysis/AIInsight.vue')['default']
     BaseChart: typeof import('./src/components/Charts/BaseChart.vue')['default']
     ChartConfigDialog: typeof import('./src/components/Charts/ChartConfigDialog.vue')['default']
+    ChartRecommendDialog: typeof import('./src/components/Charts/ChartRecommendDialog.vue')['default']
     ChartWidget: typeof import('./src/components/Dashboard/ChartWidget.vue')['default']
     ElSplitter: typeof import('element-plus/es')['ElSplitter']
     ElSplitterPanel: typeof import('element-plus/es')['ElSplitterPanel']

@@ -134,10 +134,6 @@ const currentDataset = dataStore.currentDataset; // 目前默认是第一个
         <div class="charts-section">
           <div class="section-header">
             <h3>📊 数据可视化</h3>
-            <!-- AI 推荐按钮 -->
-            <button class="ai-btn" @click="showRecommendDialog = true">
-              🤖 AI 推荐图表
-            </button>
             <button class="create-chart-btn" @click="showChartDialog = true">
               + 创建图表
             </button>
@@ -175,8 +171,7 @@ const currentDataset = dataStore.currentDataset; // 目前默认是第一个
         <h2>选择一个数据集开始分析</h2>
         <p>从左侧列表中选择，或上传新的数据文件</p>
       </div> -->
-        <!-- 推荐弹窗 -->
-        <ChartRecommendDialog v-model="showRecommendDialog" />
+
         <!-- 弹窗 -->
         <ChartConfigDialog v-model="showChartDialog" />
       </div>
@@ -192,7 +187,7 @@ import { useDashboardStore } from "@/stores/dashboard";
 import { storeToRefs } from "pinia";
 import ChartRecommendDialog from "@/components/Charts/ChartRecommendDialog.vue";
 
-// 展示ai推荐内容
+// TODO: 新增状态
 const showRecommendDialog = ref(false);
 
 const dashboardStore = useDashboardStore();
@@ -779,30 +774,5 @@ body {
   font-size: 14px;
 }
 /* #endregion */
-/* #endregion */
-
-/* 推荐弹窗 */
-/* #region */
-.header-actions {
-  display: flex;
-  gap: 12px;
-}
-
-.ai-btn {
-  padding: 8px 16px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.ai-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-}
 /* #endregion */
 </style>

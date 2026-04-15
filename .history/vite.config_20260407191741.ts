@@ -25,14 +25,17 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     },
   },
-  // 配置代理服务器，解决跨域问题
+  // 在vite.config.js文件中
+  // 添加如下配置项
   server: {
     proxy: {
-      '/api': {
+      '/api': { // 检测到有以/api开头的请求地址才会开启代理
+        // 所以baseUrl写成'/api'即可，以下代码会将/api去掉再指向target
         target: 'https://dashscope.aliyuncs.com',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, '')
+        rewrite: (path) => path.replace(/^/api /, '')
       }
     }
   }
+
 })

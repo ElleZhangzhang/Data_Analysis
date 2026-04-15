@@ -25,14 +25,4 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     },
   },
-  // 配置代理服务器，解决跨域问题
-  server: {
-    proxy: {
-      '/api': {
-        target: 'https://dashscope.aliyuncs.com',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, '')
-      }
-    }
-  }
 })

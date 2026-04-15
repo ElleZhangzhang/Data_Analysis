@@ -175,8 +175,7 @@ const currentDataset = dataStore.currentDataset; // 目前默认是第一个
         <h2>选择一个数据集开始分析</h2>
         <p>从左侧列表中选择，或上传新的数据文件</p>
       </div> -->
-        <!-- 推荐弹窗 -->
-        <ChartRecommendDialog v-model="showRecommendDialog" />
+
         <!-- 弹窗 -->
         <ChartConfigDialog v-model="showChartDialog" />
       </div>
@@ -779,30 +778,5 @@ body {
   font-size: 14px;
 }
 /* #endregion */
-/* #endregion */
-
-/* 推荐弹窗 */
-/* #region */
-.header-actions {
-  display: flex;
-  gap: 12px;
-}
-
-.ai-btn {
-  padding: 8px 16px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.ai-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-}
 /* #endregion */
 </style>

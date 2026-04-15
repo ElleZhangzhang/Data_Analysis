@@ -780,29 +780,4 @@ body {
 }
 /* #endregion */
 /* #endregion */
-
-/* 推荐弹窗 */
-/* #region */
-.header-actions {
-  display: flex;
-  gap: 12px;
-}
-
-.ai-btn {
-  padding: 8px 16px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.ai-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-}
-/* #endregion */
 </style>

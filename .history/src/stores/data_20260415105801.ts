@@ -24,15 +24,14 @@ export const useDataStore = defineStore('data', () => {
   // 首次进入时从 IndexedDB 拉全量数据到 dataset
   async function hydrateDatasets() {
     if (hydrated.value) return
-    datasets.value = await getAllDatasetsFromDB() // await发起异步任务，关心返回结果
+    datasets.value = await getAllDatasetsFromDB()
     hydrated.value = true
   }
   //#endregion
 
   function addDataset(data: Dataset): boolean {
     datasets.value.push(data)
-    void upsertDatasetToDB(data) // void发起异步任务，但不关心返回结果，避免 eslint 报错
-    // 异步任务总得有个东西标识是异步任务，要么await，要么void，不能什么都没有，不然 eslint 会报错
+    void upsertDatasetToDB(data)
     return true
   }
 

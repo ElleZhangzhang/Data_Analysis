@@ -1,0 +1,93 @@
+import * as XLSX from 'xlsx'
+import type { DataRow, ColumnDef, Dataset } from '@/types/index'
+
+type WorkerInMessage = {
+  file: File
+}
+
+type WorkerOutMessage =
+  | { ok: true; dataset: Dataset }
+  | { ok: false; message: string }
+
+const inferColumnType = (key: string, data: any[]): ColumnDef['type'] => {
+  const sampleSize = Math.min(100, data.length)
+  const values = data.slice(0, sampleSize).map(row => row[key])
+  const nonNull = values.filter(v => v != null)
+
+  if (nonNull.length === 0) return 'string'
+
+  const isNumber = nonNull.every(v =>
+    typeof v === 'number' || !isNaN(Number(v))
+  )
+  if (isNumber) return 'number'
+
+  const isDate = nonNull.every(v =>
+    !isNaN(Date.parse(String(v)))
+  )
+  if (isDate) return 'date'
+
+  return 'string'
+}
+
+// Web Worker入口：主线程一发消息，这里就开始执行解析流程
+self.onmessage = (event: MessageEvent<WorkerInMessage>) => {
+  try {
+    // 1. 拿到主线程传过来的数据
+    const { file } = event.data
+
+    // 2. 接下来该咋办咋办，和web worker没关系了
+    // 解析文件数据
+    // #region
+    const reader = new FileReaderSync()
+    const binaryData = reader.readAsBinaryString(file)
+
+    const workbook = XLSX.read(binaryData, { type: 'binary' })
+    const sheetNames = workbook.SheetNames
+    const firstSheetName = sheetNames[0] as string
+    const worksheet: unknown = workbook.Sheets[firstSheetName]
+
+    const jsonData = XLSX.utils.sheet_to_json(worksheet)
+    //#endregion
+
+    // 根据解析好的文件数据创建一个dataset
+    // #region
+    const rows: DataRow[] = jsonData.map((row, index) => ({
+      id: `row-${index}`,
+      ...(row as Record<string, any>)
+    }))
+
+    const firstRow = jsonData[0] as object
+    const columnKeys = Object.keys(firstRow)
+
+    const columns: ColumnDef[] = columnKeys.map(column => ({
+      keyName: column,
+      label: column,
+      type: inferColumnType(column, jsonData),
+      width: 150
+    }))
+
+    const dataset: Dataset = {
+      id: `dataset-${Date.now()}`,
+      name: file.name,
+      rows,
+      columns,
+      createAt: Date.now(),
+      rowCount: rows.length,
+      columnCount: columns.length,
+    }
+    //#endregion
+
+    // 3. 把结果 postMessage 回主线程，成功就回 dataset
+    const payload: WorkerOutMessage = { ok: true, dataset }
+    self.postMessage(payload)
+  } catch (error) {
+    // 3. 异常就回错误信息
+    const payload: WorkerOutMessage = {
+      ok: false,
+      message: error instanceof Error ? error.message : '文件解析失败'
+    }
+    self.postMessage(payload)
+  }
+}
+
+export { }
