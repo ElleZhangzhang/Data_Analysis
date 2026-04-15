@@ -3,7 +3,7 @@ import { ref, computed } from "vue";
 import { storeToRefs } from "pinia";
 import { useDataStore } from "@/stores/data";
 import { useDashboardStore } from "@/stores/dashboard";
-import { recommendCharts } from "@/apis/qianwen";
+import { recommendCharts } from "@/apis/qianwen.ts";
 import type { ChartConfig, ChartTransform } from "@/types";
 
 type Recommendation = {

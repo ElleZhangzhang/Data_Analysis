@@ -44,68 +44,6 @@ const { isDragging, position, setPosition, handleMouseDown } = useDrag(
   }
 );
 
-// 采样函数
-//#region
-const MAX_POINTS = 1000;
-function sampleCategorySeries(
-  xData: Array<string | number>,
-  yData: Array<string | number>
-) {
-  if (xData.length <= MAX_POINTS) {
-    return { xData, yData, sampled: false };
-  }
-
-  const step = Math.ceil(xData.length / MAX_POINTS);
-  const sampledX: Array<string | number> = [];
-  const sampledY: Array<string | number> = [];
-
-  for (let i = 0; i < xData.length; i += step) {
-    sampledX.push(xData[i] as string | number);
-    sampledY.push(yData[i] as string | number);
-  }
-
-  return { xData: sampledX, yData: sampledY, sampled: true };
-}
-
-function buildBinningSeries(data: DataRow[], field: string, binCount = 8) {
-  const values = data
-    .map((row) => Number(row[field]))
-    .filter((v) => Number.isFinite(v));
-
-  if (values.length === 0) {
-    return { xData: [] as string[], yData: [] as number[] };
-  }
-
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-
-  if (min === max) {
-    return {
-      xData: [`${min}`],
-      yData: [values.length],
-    };
-  }
-
-  const safeBinCount = Math.max(3, Math.min(20, Math.floor(binCount)));
-  const step = (max - min) / safeBinCount;
-  const counts = new Array(safeBinCount).fill(0);
-
-  values.forEach((value) => {
-    const rawIndex = Math.floor((value - min) / step);
-    const index = Math.min(safeBinCount - 1, Math.max(0, rawIndex));
-    counts[index] += 1;
-  });
-
-  const xData = counts.map((_, i) => {
-    const start = min + i * step;
-    const end = i === safeBinCount - 1 ? max : min + (i + 1) * step;
-    return `${start.toFixed(0)}-${end.toFixed(0)}`;
-  });
-
-  return { xData, yData: counts };
-}
-//#endregion
-
 // 初始化图表
 onMounted(() => {
   if (!chartRef.value) return;
@@ -120,7 +58,29 @@ onMounted(() => {
     renderer: "canvas",
     useDirtyRect: true,
   });
+  // 1. 采样函数
+  //#region
+  const MAX_POINTS = 1000;
+  function sampleCategorySeries(
+    xData: Array<string | number>,
+    yData: Array<string | number>
+  ) {
+    if (xData.length <= MAX_POINTS) {
+      return { xData, yData, sampled: false };
+    }
 
+    const step = Math.ceil(xData.length / MAX_POINTS);
+    const sampledX: Array<string | number> = [];
+    const sampledY: Array<string | number> = [];
+
+    for (let i = 0; i < xData.length; i += step) {
+      sampledX.push(xData[i]);
+      sampledY.push(yData[i]);
+    }
+
+    return { xData: sampledX, yData: sampledY, sampled: true };
+  }
+  //#endregion
   renderChart();
 
   // 窗口大小变化时，图表自动调整大小
@@ -154,9 +114,6 @@ const renderChart = () => {
     case "pie":
       option = generatePieChart();
       break;
-    case "scatter":
-      option = generateScatterChart();
-      break;
     default:
       option = generateBarChart();
   }
@@ -166,66 +123,9 @@ const renderChart = () => {
 
 // 生成柱状图配置
 const generateBarChart = () => {
-  const binning = props.config.transform?.binning;
-  if (binning?.field) {
-    const binned = buildBinningSeries(
-      props.data,
-      binning.field,
-      binning.binCount ?? 8
-    );
-    return {
-      title: {
-        text: props.config.title,
-        left: "center",
-        textStyle: {
-          fontSize: 16,
-          fontWeight: 600,
-        },
-      },
-      tooltip: {
-        trigger: "axis",
-        axisPointer: {
-          type: "shadow",
-        },
-      },
-      grid: {
-        left: "3%",
-        right: "4%",
-        bottom: "3%",
-        containLabel: true,
-      },
-      xAxis: {
-        type: "category",
-        data: binned.xData,
-        axisLabel: {
-          rotate: 45,
-          interval: 0,
-        },
-      },
-      yAxis: {
-        type: "value",
-      },
-      series: [
-        {
-          name: `${binning.field} 区间人数`,
-          type: "bar",
-          data: binned.yData,
-          itemStyle: {
-            color: "#3b82f6",
-          },
-        },
-      ],
-    };
-  }
-
   // 从数据中提取 X 轴和 Y 轴的值
-  const rawXData = props.data.map(
-    (row) => row[props.config.xAxis] as string | number
-  );
-  const rawYData = props.data.map(
-    (row) => row[props.config.yAxis] as string | number
-  );
-  const optimized = sampleCategorySeries(rawXData, rawYData);
+  const xData = props.data.map((row) => row[props.config.xAxis]);
+  const yData = props.data.map((row) => row[props.config.yAxis]);
 
   return {
     title: {
@@ -250,7 +150,7 @@ const generateBarChart = () => {
     },
     xAxis: {
       type: "category",
-      data: optimized.xData,
+      data: xData,
       axisLabel: {
         rotate: 45, // 标签旋转 45 度，避免重叠
         interval: 0, // 显示所有标签
@@ -263,7 +163,7 @@ const generateBarChart = () => {
       {
         name: props.config.yAxis,
         type: "bar",
-        data: optimized.yData,
+        data: yData,
         itemStyle: {
           color: "#3b82f6",
         },
@@ -274,63 +174,8 @@ const generateBarChart = () => {
 
 // 生成折线图配置
 const generateLineChart = () => {
-  const binning = props.config.transform?.binning;
-  if (binning?.field) {
-    const binned = buildBinningSeries(
-      props.data,
-      binning.field,
-      binning.binCount ?? 8
-    );
-    return {
-      title: {
-        text: props.config.title,
-        left: "center",
-        textStyle: {
-          fontSize: 16,
-          fontWeight: 600,
-        },
-      },
-      tooltip: {
-        trigger: "axis",
-      },
-      grid: {
-        left: "3%",
-        right: "4%",
-        bottom: "3%",
-        containLabel: true,
-      },
-      xAxis: {
-        type: "category",
-        data: binned.xData,
-        boundaryGap: false,
-      },
-      yAxis: {
-        type: "value",
-      },
-      series: [
-        {
-          name: `${binning.field} 区间人数`,
-          type: "line",
-          data: binned.yData,
-          smooth: true,
-          itemStyle: {
-            color: "#3b82f6",
-          },
-          areaStyle: {
-            color: "rgba(59, 130, 246, 0.1)",
-          },
-        },
-      ],
-    };
-  }
-
-  const rawXData = props.data.map(
-    (row) => row[props.config.xAxis] as string | number
-  );
-  const rawYData = props.data.map(
-    (row) => row[props.config.yAxis] as string | number
-  );
-  const optimized = sampleCategorySeries(rawXData, rawYData);
+  const xData = props.data.map((row) => row[props.config.xAxis]);
+  const yData = props.data.map((row) => row[props.config.yAxis]);
 
   return {
     title: {
@@ -352,7 +197,7 @@ const generateLineChart = () => {
     },
     xAxis: {
       type: "category",
-      data: optimized.xData,
+      data: xData,
       boundaryGap: false,
     },
     yAxis: {
@@ -362,7 +207,7 @@ const generateLineChart = () => {
       {
         name: props.config.yAxis,
         type: "line",
-        data: optimized.yData,
+        data: yData,
         smooth: true, // 平滑曲线
         itemStyle: {
           color: "#3b82f6",
@@ -370,55 +215,6 @@ const generateLineChart = () => {
         areaStyle: {
           // 填充区域
           color: "rgba(59, 130, 246, 0.1)",
-        },
-      },
-    ],
-  };
-};
-
-const generateScatterChart = () => {
-  const points = props.data
-    .map((row) => {
-      const x = Number(row[props.config.xAxis]);
-      const y = Number(row[props.config.yAxis]);
-      if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
-      return [x, y] as [number, number];
-    })
-    .filter((point): point is [number, number] => point !== null);
-
-  return {
-    title: {
-      text: props.config.title,
-      left: "center",
-      textStyle: {
-        fontSize: 16,
-        fontWeight: 600,
-      },
-    },
-    tooltip: {
-      trigger: "item",
-    },
-    grid: {
-      left: "3%",
-      right: "4%",
-      bottom: "3%",
-      containLabel: true,
-    },
-    xAxis: {
-      type: "value",
-      name: props.config.xAxis,
-    },
-    yAxis: {
-      type: "value",
-      name: props.config.yAxis,
-    },
-    series: [
-      {
-        name: `${props.config.xAxis} vs ${props.config.yAxis}`,
-        type: "scatter",
-        data: points,
-        itemStyle: {
-          color: "#3b82f6",
         },
       },
     ],

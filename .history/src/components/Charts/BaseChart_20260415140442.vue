@@ -168,11 +168,7 @@ const renderChart = () => {
 const generateBarChart = () => {
   const binning = props.config.transform?.binning;
   if (binning?.field) {
-    const binned = buildBinningSeries(
-      props.data,
-      binning.field,
-      binning.binCount ?? 8
-    );
+    const binned = buildBinningSeries(props.data, binning.field, binning.binCount ?? 8);
     return {
       title: {
         text: props.config.title,
@@ -276,11 +272,7 @@ const generateBarChart = () => {
 const generateLineChart = () => {
   const binning = props.config.transform?.binning;
   if (binning?.field) {
-    const binned = buildBinningSeries(
-      props.data,
-      binning.field,
-      binning.binCount ?? 8
-    );
+    const binned = buildBinningSeries(props.data, binning.field, binning.binCount ?? 8);
     return {
       title: {
         text: props.config.title,
