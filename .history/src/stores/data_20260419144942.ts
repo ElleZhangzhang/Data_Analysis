@@ -67,11 +67,3 @@ export const useDataStore = defineStore('data', () => {
   //   persist: true
   //
 })
-
-// 定义数据库元信息：库名、版本号、对象仓库名（datasets）。
-// 用 idb 的 openDB 打开数据库，并在 upgrade 阶段创建对象仓库。
-// 提供 4 个最小能力函数：
-// getAllDatasetsFromDB：一次性读取全部数据集。
-// upsertDatasetToDB：新增或覆盖同 id 的数据集。
-// getDatasetFromDB：按 id 读取单个数据集。
-// deleteDatasetFromDB：按 id 删除。
