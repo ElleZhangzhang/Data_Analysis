@@ -1,17 +1,22 @@
-// import { createRouter, createWebHistory } from 'vue-router'
-// import VirtualTable from '@/components/DataTable/VirtualTable.vue'  // 根据实际路径调整
+import { createRouter, createWebHistory } from 'vue-router'
+import DataView from '@/views/DataView.vue'
 
-// const routes = [
-//   {
-//     path: '/',
-//     name: 'DataTable',
-//     component: VirtualTable  // 设置为首页
-//   }
-// ]
+const routes = [
+  {
+    path: '/',
+    name: 'DataView',
+    component: DataView
+  },
+  {
+    path: '/report-editor',
+    name: 'ReportEditor',
+    component: () => import('@/views/ReportEditor.vue')
+  }
+]
 
-// const router = createRouter({
-//   history: createWebHistory(),
-//   routes
-// })
+const router = createRouter({
+  history: createWebHistory(),
+  routes
+})
 
-// export default router
+export default router

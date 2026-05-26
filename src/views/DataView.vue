@@ -101,6 +101,10 @@ const currentDataset = dataStore.currentDataset; // 目前默认是第一个
               <i class="icon-export"></i> 导出
               <span class="btn-streamer"></span>
             </button>
+            <button class="action-btn_main btn-report-chic" @click="goToReportEditor">
+              📄 AI 分析报告
+              <span class="btn-streamer"></span>
+            </button>
           </div>
         </div>
 
@@ -186,6 +190,7 @@ const currentDataset = dataStore.currentDataset; // 目前默认是第一个
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
+import { useRouter } from "vue-router";
 import { useDataStore } from "@/stores/data";
 import { useFileParser } from "@/composables/useFileParse";
 import { useDashboardStore } from "@/stores/dashboard";
@@ -198,6 +203,7 @@ const showRecommendDialog = ref(false);
 const dashboardStore = useDashboardStore();
 
 const dataStore = useDataStore();
+const router = useRouter();
 const { currentDataset, datasets } = storeToRefs(dataStore);
 const { addDataset, setCurrentDataset } = dataStore;
 
@@ -236,6 +242,11 @@ const handleDeleteChart = (chartId: string) => {
   if (confirm("确定删除这个图表吗？")) {
     dashboardStore.deleteChart(chartId);
   }
+};
+
+// 跳转到报告编辑页面
+const goToReportEditor = () => {
+  router.push("/report-editor");
 };
 </script>
 
@@ -780,6 +791,19 @@ body {
 }
 /* #endregion */
 /* #endregion */
+
+/* 报告生成按钮 */
+.btn-report-chic {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+}
+
+.btn-report-chic:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  border-color: transparent;
+}
 
 /* 推荐弹窗 */
 /* #region */

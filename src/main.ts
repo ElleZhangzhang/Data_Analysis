@@ -4,7 +4,7 @@ import { createPinia } from 'pinia'
 import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
 
 import App from './App.vue'
-// import router from '@/router'
+import router from '@/router'
 
 const app = createApp(App)
 
@@ -13,6 +13,6 @@ pinia.use(piniaPluginPersistedstate) //注册持久化插件
 
 
 app.use(pinia)
-// app.use(router)
+app.use(router)
 
 app.mount('#app')

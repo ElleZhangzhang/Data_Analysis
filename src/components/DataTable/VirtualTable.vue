@@ -32,7 +32,7 @@
 
 <script setup lang="ts">
 import { useVirtualScroll } from "@/components/DataTable/useVirtualScroll";
-import { ColumnDef, DataRow } from "@/types/data";
+import { ColumnDef, DataRow } from "@/types";
 
 interface Props {
   data: DataRow[]; // 10000 行数据

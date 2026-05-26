@@ -1,11 +1,8 @@
 <script setup lang="ts">
-import Upload from "@/views/Upload.vue";
-import DataView from "@/views/DataView.vue";
 </script>
 
 <template>
-  <Upload></Upload>
-  <DataView></DataView>
+  <router-view></router-view>
 </template>
 
 <style scoped></style>
