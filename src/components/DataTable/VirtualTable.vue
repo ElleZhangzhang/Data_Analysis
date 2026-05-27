@@ -41,7 +41,7 @@ interface Props {
 const props = defineProps<Props>();
 
 const virtualScroll = useVirtualScroll(
-  props.data, // 10000 行完整数据   dataset.rows
+  () => props.data, // 改为 getter 函数，保证数据切换时响应式更新
   51,
   592
 );

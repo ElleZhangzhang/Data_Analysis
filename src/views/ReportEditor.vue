@@ -20,6 +20,7 @@ const dashboardStore = useDashboardStore()
 
 const loading = ref(false)
 const error = ref('')
+const exporting = ref(false)
 
 const currentDataset = computed(() => dataStore.currentDataset)
 const charts = computed(() => {
@@ -60,12 +61,19 @@ async function handleGenerateReport() {
   error.value = ''
 
   try {
-    const html = await generateReport(
+    let html = await generateReport(
       currentDataset.value.name,
       currentDataset.value.columns,
       currentDataset.value.rows.slice(0, 100),
       charts.value
     )
+
+    // 将 AI 返回的 data-chart-id="c0" / "c1" 等替换为实际的 chart UUID
+    charts.value.forEach((chart, index) => {
+      const pattern = new RegExp(`data-chart-id="c${index}"`, 'g')
+      html = html.replace(pattern, `data-chart-id="${chart.id}" data-chart-title="${chart.title}" data-chart-type="${chart.type}"`)
+    })
+
     editor.value?.commands.setContent(html)
     // Save after generation
     if (editor.value && currentDataset.value) {
@@ -149,6 +157,55 @@ function chartIcon(type: string) {
   }
   return map[type] || '📊'
 }
+
+// Export PDF
+async function exportPDF() {
+  const proseMirror = document.querySelector('.ProseMirror') as HTMLElement | null
+  if (!proseMirror || !currentDataset.value) return
+
+  exporting.value = true
+
+  try {
+    const { default: html2canvas } = await import('html2canvas')
+    const { jsPDF } = await import('jspdf')
+
+    const canvas = await html2canvas(proseMirror, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: '#ffffff',
+      logging: false,
+    })
+
+    const imgData = canvas.toDataURL('image/png')
+    const pdf = new jsPDF('p', 'mm', 'a4')
+    const pdfWidth = 210
+    const pdfHeight = 297
+    const imgWidth = pdfWidth - 16 // 8mm margins
+    const imgHeight = (canvas.height * imgWidth) / canvas.width
+
+    let heightLeft = imgHeight
+    let position = 0
+
+    // Center image horizontally with 8mm left margin
+    const xOffset = 8
+    pdf.addImage(imgData, 'PNG', xOffset, position, imgWidth, imgHeight)
+    heightLeft -= pdfHeight
+
+    while (heightLeft > 0) {
+      position -= pdfHeight
+      pdf.addPage()
+      pdf.addImage(imgData, 'PNG', xOffset, position, imgWidth, imgHeight)
+      heightLeft -= pdfHeight
+    }
+
+    pdf.save(`${currentDataset.value.name}_分析报告.pdf`)
+  } catch (e) {
+    console.error('PDF 导出失败', e)
+    error.value = 'PDF 导出失败，请重试'
+  } finally {
+    exporting.value = false
+  }
+}
 </script>
 
 <template>
@@ -167,8 +224,8 @@ function chartIcon(type: string) {
         >
           {{ loading ? '⏳ 生成中...' : '🔄 重新生成' }}
         </button>
-        <button class="btn btn-export" disabled title="即将实现">
-          📄 导出 PDF
+        <button class="btn btn-export" :disabled="exporting" @click="exportPDF">
+          {{ exporting ? '⏳ 导出中...' : '📄 导出 PDF' }}
         </button>
       </div>
     </header>
@@ -308,6 +365,12 @@ function chartIcon(type: string) {
         <div v-if="loading" class="loading-overlay">
           <div class="loading-spinner"></div>
           <p>AI 正在分析数据并生成报告...</p>
+        </div>
+
+        <!-- PDF export overlay -->
+        <div v-if="exporting" class="loading-overlay">
+          <div class="loading-spinner"></div>
+          <p>正在导出 PDF...</p>
         </div>
 
         <!-- Editor content -->

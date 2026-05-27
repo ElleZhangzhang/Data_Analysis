@@ -1,11 +1,14 @@
 // composables/useVirtualScroll.ts
-import { ref, computed, toRaw } from 'vue'
+import { ref, computed, watch } from 'vue'
 
 export function useVirtualScroll<T>(
-  data: T[],              // 完整数据
-  itemHeight: number,     // 每行高度
-  containerHeight: number // 容器高度
+  getData: () => T[],      // 改为 getter 函数，保证响应式
+  itemHeight: number,       // 每行高度
+  containerHeight: number   // 容器高度
 ) {
+  // 将 getter 包装为 computed，确保数据变化时重新计算
+  const data = computed(getData)
+
   // 1. 当前滚动位置
   const scrollTop = ref(0)
 
@@ -24,23 +27,27 @@ export function useVirtualScroll<T>(
   // 计算结束索引
   const endIndex = computed(() => {
     const index = startIndex.value + visibleCount + bufferSize * 2
-    return Math.min(data.length, index)  // 不能超过总长度
+    return Math.min(data.value.length, index)  // 不能超过总长度
   })
 
   // 当前可见的数据，它是dataset.rows
   const visibleData = computed(() => {
-    return data.slice(startIndex.value, endIndex.value)
-    // return sliced.map(item => toRaw(item)) // 转换为普通对象，避免性能问题
+    return data.value.slice(startIndex.value, endIndex.value)
   })
 
   // 总高度
   const totalHeight = computed(() => {
-    return data.length * itemHeight
+    return data.value.length * itemHeight
   })
 
   // Y 轴偏移量
   const offsetY = computed(() => {
     return startIndex.value * itemHeight
+  })
+
+  // 数据变化时重置滚动位置
+  watch(data, () => {
+    scrollTop.value = 0
   })
 
   // 滚动事件处理

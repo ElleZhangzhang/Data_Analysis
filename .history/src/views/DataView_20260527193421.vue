@@ -11,6 +11,8 @@ const currentDataset = dataStore.currentDataset; // 目前默认是第一个
   <VirtualTable :data="currentDataset.rows" :columns="currentDataset.columns" />
 </template> -->
 <template>
+  <button @click="showValues">Show currentDataset and currentCharts</button>
+
   <div class="sc-analytics-container editorial-style">
     <div class="editorial-background">
       <div class="sunlight-spotlight"></div>
@@ -30,6 +32,7 @@ const currentDataset = dataStore.currentDataset; // 目前默认是第一个
           class="nav-item"
           v-for="item in dataStore.datasets"
           :key="item.id"
+          :class="{ active: dataStore.currentDataset?.id === item.id }"
           @click="dataStore.setCurrentDataset(item.id)"
         >
           <span class="item-icon">✦</span>
@@ -91,12 +94,11 @@ const currentDataset = dataStore.currentDataset; // 目前默认是第一个
           </div>
 
           <div class="header-actions">
-            <button class="action-btn_main btn-filter-chic gold-glow-btn">
-              <i class="icon-filter"></i> 筛选
-              <span class="btn-streamer"></span>
-            </button>
-            <button class="action-btn_main btn-export-chic gold-glow-btn">
-              <i class="icon-export"></i> 导出
+            <button
+              class="action-btn_main btn-report-chic"
+              @click="goToReportEditor"
+            >
+              📄 AI 分析报告
               <span class="btn-streamer"></span>
             </button>
           </div>
@@ -113,31 +115,100 @@ const currentDataset = dataStore.currentDataset; // 目前默认是第一个
             </div>
           </div>
         </div>
+
         <!-- VirtualTable展示区 -->
-        <div class="table-body-mock">
-          <VirtualTable
-            :data="dataStore.currentDataset.rows"
-            :columns="dataStore.currentDataset.columns"
-          ></VirtualTable>
+        <!-- #region -->
+        <!-- <div class="table-body-mock"> -->
+
+        <VirtualTable
+          :data="dataStore.currentDataset.rows"
+          :columns="dataStore.currentDataset.columns"
+        ></VirtualTable>
+
+        <!-- </div> -->
+        <!-- #endregion -->
+
+        <!-- 图表区域 -->
+        <!-- #region -->
+
+        <div class="charts-section">
+          <div class="section-header">
+            <h3>📊 数据可视化</h3>
+            <!-- AI 推荐按钮 -->
+            <button class="ai-btn" @click="showRecommendDialog = true">
+              🤖 AI 推荐图表
+            </button>
+            <button class="create-chart-btn" @click="showChartDialog = true">
+              + 创建图表
+            </button>
+          </div>
+
+          <!-- 图表网格 -->
+          <!-- <div
+            class="charts-grid"
+            :class="{ 'has-charts': currentCharts.length > 0 }"
+          > -->
+          <!-- 空状态 -->
+          <p v-if="currentCharts.length === 0" class="empty-hint">
+            点击"创建图表"开始可视化分析
+          </p>
+
+          <!-- 图表列表 -->
+          <div v-if="currentCharts.length !== 0">
+            <BaseChart
+              v-for="chart in currentCharts"
+              :key="chart.id"
+              :config="chart"
+              :data="currentDataset?.rows"
+              @delete="handleDeleteChart(chart.id)"
+            />
+          </div>
+          <!-- </div> -->
         </div>
+
+        <!-- #endregion -->
+
+        <!-- 未选中状态 -->
+        <!-- 暂时不知道要加到哪里 -->
+        <!-- <div v-else class="empty-content">
+        <div class="empty-icon">👈</div>
+        <h2>选择一个数据集开始分析</h2>
+        <p>从左侧列表中选择，或上传新的数据文件</p>
+      </div> -->
+        <!-- 推荐弹窗 -->
+        <ChartRecommendDialog v-model="showRecommendDialog" />
+        <!-- 弹窗 -->
+        <ChartConfigDialog v-model="showChartDialog" />
       </div>
     </main>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, computed } from "vue";
+import { useRouter } from "vue-router";
 import { useDataStore } from "@/stores/data";
-
 import { useFileParser } from "@/composables/useFileParse";
-
+import { useDashboardStore } from "@/stores/dashboard";
 import { storeToRefs } from "pinia";
+import ChartRecommendDialog from "@/components/Charts/ChartRecommendDialog.vue";
 
-// import VirtualTable from "@/components/DataTable/VirtualTable.vue";
-const { parseFile } = useFileParser();
+// 展示ai推荐内容
+const showRecommendDialog = ref(false);
+
+const dashboardStore = useDashboardStore();
 
 const dataStore = useDataStore();
-// const { currentDataset } = storeToRefs(dataStore);
+const router = useRouter();
+const { currentDataset, datasets } = storeToRefs(dataStore);
+const { addDataset, setCurrentDataset } = dataStore;
+
+// 控制弹窗显示
+const showChartDialog = ref(false);
+
+// 上传文件
+//#region
+const { parseFile } = useFileParser();
 
 const fileInput = ref<HTMLInputElement>();
 
@@ -146,31 +217,38 @@ const triggerFileInput = () => {
   fileInput.value?.click();
 };
 
-const handleUpload = async (event) => {
+const handleUpload = async (event: Event) => {
   const file = event.target.files[0]; // 获取文件
   if (!file) return;
 
   const data = await parseFile(file); // 传入 file 对象
 };
 
-//#region
-
-// 模拟格式化时间函数
-// const formatTime = (date) => {
-//   if (!date) return "";
-//   return date.toLocaleDateString("en-US", {
-//     year: "numeric",
-//     month: "long",
-//     day: "numeric",
-//   });
-// };
 //#endregion
+
+// ✨ 新增：获取当前已经创建过的数据集的图表
+const currentCharts = computed(() => {
+  if (!currentDataset?.value) return [];
+
+  return dashboardStore.getChartsByDataset(currentDataset.value.id);
+});
+
+// ✨ 新增：删除图表
+const handleDeleteChart = (chartId: string) => {
+  if (confirm("确定删除这个图表吗？")) {
+    dashboardStore.deleteChart(chartId);
+  }
+};
+
+// 跳转到报告编辑页面
+const goToReportEditor = () => {
+  router.push("/report-editor");
+};
 </script>
 
 <style scoped>
-/* =========================================
-   3. 核心变量与设计系统 (Chic & Editiorial)
-   ========================================= */
+/* 已有样式 */
+/* #region */
 :global(body) {
   margin: 0;
   padding: 0;
@@ -427,19 +505,22 @@ const handleUpload = async (event) => {
    ========================================= */
 .main-content {
   flex: 1;
+  overflow: auto;
   position: relative;
   z-index: 5;
   padding: 40px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  /* display: flex; */
+  /* justify-content: center; */
+  /* align-items: center; */
 }
 
 .content-wrapper {
   width: 100%;
-  height: 100%;
+  /* height: 100%; */
   display: flex;
   flex-direction: column;
+
+  gap: 0;
 }
 
 /* 顶部信息栏 */
@@ -450,6 +531,8 @@ const handleUpload = async (event) => {
   justify-content: space-between;
   align-items: center;
   background-color: var(--bg-pure-white);
+
+  flex-shrink: 0;
 }
 
 .dataset-name {
@@ -534,12 +617,12 @@ const handleUpload = async (event) => {
   background-color: var(--bg-pure-white);
 }
 
-.table-header-mock,
-.table-row-mock {
+.table-header-mock {
   display: flex;
   padding: 14px 25px;
   border-bottom: 1px solid rgba(191, 161, 117, 0.03);
   align-items: center;
+  text-align: left;
 }
 
 .table-header-mock {
@@ -629,4 +712,117 @@ const handleUpload = async (event) => {
   opacity: 0.8;
   color: var(--color-gold-deep);
 }
+/* #endregion */
+
+/* 图表区域样式 */
+/* #region */
+body {
+  overflow: scroll;
+}
+
+.charts-section {
+  /* height: 400px; */
+  margin-top: 24px;
+  padding: 24px 32px;
+  background: white;
+  border-radius: 8px;
+  /* overflow: auto; */
+
+  min-height: 200px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.section-header h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+}
+
+.create-chart-btn {
+  padding: 8px 16px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.create-chart-btn:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+/* 图表网格样式 */
+/* #region */
+.charts-grid {
+  min-height: 200px;
+}
+
+.charts-grid.has-charts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(500px, 1fr));
+  gap: 20px;
+}
+
+.charts-grid:not(.has-charts) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.empty-hint {
+  color: #9ca3af;
+  font-size: 14px;
+}
+/* #endregion */
+/* #endregion */
+
+/* 报告生成按钮 */
+.btn-report-chic {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+}
+
+.btn-report-chic:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  border-color: transparent;
+}
+
+/* 推荐弹窗 */
+/* #region */
+.header-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.ai-btn {
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ai-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+/* #endregion */
 </style>

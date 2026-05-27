@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import type { Dataset } from '@/types/index.ts'
 
 import {
@@ -7,6 +7,8 @@ import {
   upsertDatasetToDB,
   // deleteDatasetFromDB
 } from '@/utils/datasetDB'
+
+const LAST_DATASET_KEY = 'lastDatasetId'
 
 // 定义每个数据集
 
@@ -26,6 +28,13 @@ export const useDataStore = defineStore('data', () => {
     if (hydrated.value) return
     datasets.value = await getAllDatasetsFromDB() // await发起异步任务，关心返回结果
     hydrated.value = true
+
+    // 回填完成后，尝试恢复上次使用的数据集
+    const lastId = localStorage.getItem(LAST_DATASET_KEY)
+    if (lastId) {
+      const found = datasets.value.find(d => d.id === lastId)
+      if (found) currentDataset.value = found
+    }
   }
   //#endregion
 
@@ -48,9 +57,17 @@ export const useDataStore = defineStore('data', () => {
 
   function setCurrentDataset(id: string) {
     const dataset = datasets.value.filter(dataset => dataset.id === id)
-
-    currentDataset.value = dataset[0]
+    currentDataset.value = dataset[0] ?? null
   }
+
+  // 持久化 currentDataset 到 localStorage，刷新后恢复
+  watch(currentDataset, (ds) => {
+    if (ds) {
+      localStorage.setItem(LAST_DATASET_KEY, ds.id)
+    } else {
+      localStorage.removeItem(LAST_DATASET_KEY)
+    }
+  })
 
   void hydrateDatasets()
 
@@ -67,11 +84,3 @@ export const useDataStore = defineStore('data', () => {
   //   persist: true
   //
 })
-
-// 定义数据库元信息：库名、版本号、对象仓库名（datasets）。
-// 用 idb 的 openDB 打开数据库，并在 upgrade 阶段创建对象仓库。
-// 提供 4 个最小能力函数：
-// getAllDatasetsFromDB：一次性读取全部数据集。
-// upsertDatasetToDB：新增或覆盖同 id 的数据集。
-// getDatasetFromDB：按 id 读取单个数据集。
-// deleteDatasetFromDB：按 id 删除。

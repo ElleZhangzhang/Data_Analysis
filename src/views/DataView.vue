@@ -32,6 +32,7 @@ const currentDataset = dataStore.currentDataset; // 目前默认是第一个
           class="nav-item"
           v-for="item in dataStore.datasets"
           :key="item.id"
+          :class="{ active: dataStore.currentDataset?.id === item.id }"
           @click="dataStore.setCurrentDataset(item.id)"
         >
           <span class="item-icon">✦</span>
@@ -93,15 +94,10 @@ const currentDataset = dataStore.currentDataset; // 目前默认是第一个
           </div>
 
           <div class="header-actions">
-            <button class="action-btn_main btn-filter-chic gold-glow-btn">
-              <i class="icon-filter"></i> 筛选
-              <span class="btn-streamer"></span>
-            </button>
-            <button class="action-btn_main btn-export-chic gold-glow-btn">
-              <i class="icon-export"></i> 导出
-              <span class="btn-streamer"></span>
-            </button>
-            <button class="action-btn_main btn-report-chic" @click="goToReportEditor">
+            <button
+              class="action-btn_main btn-report-chic"
+              @click="goToReportEditor"
+            >
               📄 AI 分析报告
               <span class="btn-streamer"></span>
             </button>
@@ -221,7 +217,7 @@ const triggerFileInput = () => {
   fileInput.value?.click();
 };
 
-const handleUpload = async (event) => {
+const handleUpload = async (event: Event) => {
   const file = event.target.files[0]; // 获取文件
   if (!file) return;
 

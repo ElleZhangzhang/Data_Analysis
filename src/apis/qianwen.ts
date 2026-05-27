@@ -116,8 +116,8 @@ export async function generateReport(
   charts: ChartConfig[]
 ) {
   const dataDescription = statsToText(columns, sampleData)
-  const chartList = charts.map(c =>
-    `- 图表"${c.title}"(${c.type}): X轴=${c.xAxis}, Y轴=${c.yAxis}`
+  const chartList = charts.map((c, i) =>
+    `- 图表"${c.title}"(c${i}): X轴=${c.xAxis}, Y轴=${c.yAxis}，类型=${c.type}`
   ).join('\n') || '（暂无图表）'
 
   const prompt = `你是专业数据分析报告撰写专家。根据以下数据集信息和图表，生成一份完整的数据分析报告。
@@ -136,7 +136,7 @@ ${chartList}
    - <h1>报告标题</h1>
    - <h2>概述</h2> —— 一段总体分析
    - <h2>数据概况</h2> —— 描述数据量、字段构成等
-   - <h2>可视化分析</h2> —— 逐一分析已有图表的洞察，用 <div data-chart-id="图表标题" data-chart-title="图表标题"></div> 标记图表插入位置，每个图表前加<h3>小节
+   - <h2>可视化分析</h2> —— 逐一分析已有图表的洞察，用 <div data-chart-id="c0"></div>、<div data-chart-id="c1"></div> 等标记图表插入位置（使用上面已有图表中括号内的id），每个图表前加<h3>小节
    - <h2>核心发现</h2> —— <ul><li>发现1</li>...</ul>
    - <h2>建议</h2> —— <ul><li>建议1</li>...</ul>
 3. 使用规范的 HTML 标签：<p>、<strong>、<ul>/<ol>、<li>、<table>（如需）、<br>。
