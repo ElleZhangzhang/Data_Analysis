@@ -1,5 +1,7 @@
 import { Node, mergeAttributes } from '@tiptap/core'
+import { VueNodeViewRenderer } from '@tiptap/vue-3'
 import type { HTMLAttributes } from 'vue'
+import ChartEmbedNodeView from './ChartEmbedNodeView.vue'
 
 export const ChartEmbedExtension = Node.create({
   name: 'chartEmbed',
@@ -39,5 +41,9 @@ export const ChartEmbedExtension = Node.create({
       mergeAttributes(HTMLAttributes, { class: 'chart-embed-node' }),
       ['div', { class: 'chart-embed-placeholder' }, `📊 ${chartTitle} [${chartType}]`],
     ] as any
+  },
+
+  addNodeView() {
+    return VueNodeViewRenderer(ChartEmbedNodeView)
   },
 })

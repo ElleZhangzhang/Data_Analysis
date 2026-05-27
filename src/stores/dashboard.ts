@@ -13,6 +13,13 @@ import type { Ref } from 'vue'
 export const useDashboardStore = defineStore('dashboard', () => {
   const charts: Ref<ChartConfig[]> = ref([])
 
+  // 分析报告内容缓存，keyed by datasetId
+  interface ReportContent {
+    content: any      // TipTap JSON content
+    updatedAt: number
+  }
+  const reportContents = ref<Record<string, ReportContent>>({})
+
   // 一会儿再看
   const getChartsByDataset = (datasetId: string) => {
     const getCharts = charts.value.filter(chart => chart.datasetId === datasetId)
@@ -40,12 +47,31 @@ export const useDashboardStore = defineStore('dashboard', () => {
     }
   }
 
+  // 保存分析报告内容
+  const saveReportContent = (datasetId: string, content: any) => {
+    reportContents.value[datasetId] = { content, updatedAt: Date.now() }
+  }
+
+  // 获取分析报告内容
+  const getReportContent = (datasetId: string): ReportContent | null => {
+    return reportContents.value[datasetId] ?? null
+  }
+
+  // 删除分析报告内容
+  const removeReportContent = (datasetId: string) => {
+    delete reportContents.value[datasetId]
+  }
+
   return {
     charts,
     getChartsByDataset,
     addChart,
     deleteChart,
-    updateChartPosition
+    updateChartPosition,
+    reportContents,
+    saveReportContent,
+    getReportContent,
+    removeReportContent,
   }
 }, {
   persist: true

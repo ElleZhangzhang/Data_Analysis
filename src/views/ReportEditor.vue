@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useEditor, EditorContent } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
@@ -67,6 +67,10 @@ async function handleGenerateReport() {
       charts.value
     )
     editor.value?.commands.setContent(html)
+    // Save after generation
+    if (editor.value && currentDataset.value) {
+      dashboardStore.saveReportContent(currentDataset.value.id, editor.value.getJSON())
+    }
   } catch (e) {
     error.value = 'AI 报告生成失败，请重试'
     console.error(e)
@@ -93,13 +97,46 @@ function goBack() {
   router.push('/')
 }
 
-// Auto-generate on mount
+// Auto-save editor content with debounce
+let saveTimer: ReturnType<typeof setTimeout> | null = null
+
+function setupAutoSave() {
+  if (!editor.value) return
+  editor.value.on('update', () => {
+    if (saveTimer) clearTimeout(saveTimer)
+    saveTimer = setTimeout(() => {
+      if (editor.value && currentDataset.value) {
+        dashboardStore.saveReportContent(currentDataset.value.id, editor.value.getJSON())
+      }
+    }, 2000)
+  })
+}
+
 onMounted(() => {
-  if (currentDataset.value) {
-    handleGenerateReport()
-  } else {
+  if (!currentDataset.value) {
     error.value = '未选择数据集，请先返回选择数据集'
+    return
   }
+
+  // Check if saved content exists for this dataset
+  const saved = dashboardStore.getReportContent(currentDataset.value.id)
+  if (saved) {
+    // Restore saved content instead of re-generating
+    nextTick(() => {
+      if (editor.value) {
+        editor.value.commands.setContent(saved.content)
+      }
+    })
+  } else {
+    handleGenerateReport()
+  }
+
+  // Set up auto-save after editor is ready
+  nextTick(() => setupAutoSave())
+})
+
+onUnmounted(() => {
+  if (saveTimer) clearTimeout(saveTimer)
 })
 
 // Chart type icon
