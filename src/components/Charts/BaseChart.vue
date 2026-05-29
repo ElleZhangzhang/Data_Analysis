@@ -107,7 +107,9 @@ function buildBinningSeries(data: DataRow[], field: string, binCount = 8) {
 //#endregion
 
 // 初始化图表
+let isMounted = false;
 onMounted(() => {
+  isMounted = true;
   if (!chartRef.value) return;
 
   // 如果配置里有位置，就用配置的位置
@@ -115,19 +117,24 @@ onMounted(() => {
     setPosition(props.config.position);
   }
 
-  // 2.
-  chartInstance = echarts.init(chartRef.value, undefined, {
-    renderer: "canvas",
-    useDirtyRect: true,
+  // 延迟初始化到下一帧，避免批量切换数据集时多个 ECharts 实例同时 init 阻塞主线程
+  requestAnimationFrame(() => {
+    if (!isMounted || !chartRef.value) return;
+
+    chartInstance = echarts.init(chartRef.value, undefined, {
+      renderer: "canvas",
+      useDirtyRect: true,
+    });
+
+    renderChart();
+
+    // 窗口大小变化时，图表自动调整大小
+    window.addEventListener("resize", handleResize);
   });
-
-  renderChart();
-
-  // 窗口大小变化时，图表自动调整大小
-  window.addEventListener("resize", handleResize);
 });
 
 onUnmounted(() => {
+  isMounted = false;
   window.removeEventListener("resize", handleResize);
   chartInstance?.dispose();
 });

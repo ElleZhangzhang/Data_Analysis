@@ -43,7 +43,6 @@ export const useDataStore = defineStore('data', () => {
   }
   //#endregion
 
-  // 双写入模式，平衡IndexedDB和Pinia
   function addDataset(data: Dataset): boolean {
     // 完整数据写入 IndexedDB
     void upsertDatasetToDB(data)

@@ -20,7 +20,7 @@ export function useFileParser() {
         worker.onerror = null
         worker.terminate()
       }
-      // 2. 接收worker返回的消息
+      // 接收worker返回的消息
       worker.onmessage = (event: MessageEvent<WorkerOutMessage>) => {
         const payload = event.data
 
@@ -39,7 +39,7 @@ export function useFileParser() {
         cleanup()
         reject(new Error('Worker 解析失败'))
       }
-      // 1. 向worker发送file，让worker负责解析file
+      // 想worker发送file，让worker负责解析file
       worker.postMessage({ file })
     })
   }

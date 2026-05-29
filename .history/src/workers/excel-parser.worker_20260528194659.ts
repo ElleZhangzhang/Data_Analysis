@@ -82,11 +82,11 @@ self.onmessage = (event: MessageEvent<WorkerInMessage>) => {
     const payload: WorkerOutMessage = { ok: true, dataset }
     self.postMessage(payload)
   } catch (error) {
+    // 3. 异常就回错误信息
     const payload: WorkerOutMessage = {
       ok: false,
       message: error instanceof Error ? error.message : '文件解析失败'
     }
-    // 3. 异常就回错误信息
     self.postMessage(payload)
   }
 }

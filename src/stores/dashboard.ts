@@ -13,6 +13,17 @@ import type { Ref } from 'vue'
 export const useDashboardStore = defineStore('dashboard', () => {
   const charts: Ref<ChartConfig[]> = ref([])
 
+  // AI 图表推荐缓存，keyed by datasetId
+  const chartRecommendations = ref<Record<string, any[]>>({})
+
+  const saveRecommendations = (datasetId: string, recs: any[]) => {
+    chartRecommendations.value[datasetId] = recs
+  }
+
+  const getRecommendations = (datasetId: string): any[] | null => {
+    return chartRecommendations.value[datasetId] ?? null
+  }
+
   // 分析报告内容缓存，keyed by datasetId
   interface ReportContent {
     content: any      // TipTap JSON content
@@ -72,6 +83,9 @@ export const useDashboardStore = defineStore('dashboard', () => {
     saveReportContent,
     getReportContent,
     removeReportContent,
+    chartRecommendations,
+    saveRecommendations,
+    getRecommendations,
   }
 }, {
   persist: true
