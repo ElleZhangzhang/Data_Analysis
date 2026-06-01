@@ -2,9 +2,9 @@ import { openDB, type DBSchema } from 'idb' // node_modules有
 import type { Dataset } from '@/types/index'
 
 // 1. 定义数据库元信息
-const DB_NAME = 'data-platform' // 库名
+const DB_NAME = 'data-platform' // 整个库的名字
 const DB_VERSION = 1 // 版本号
-const STORE_NAME = 'datasets' // 对象仓库名
+const STORE_NAME = 'datasets' // 本数据集对应的仓库名
 
 // 2. 用 idb 的 openDB 打开数据库，并在 upgrade 阶段创建对象仓库
 //#region

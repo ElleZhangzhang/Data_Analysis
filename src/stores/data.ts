@@ -6,61 +6,72 @@ import {
   getAllDatasetsFromDB,
   getDatasetFromDB,
   upsertDatasetToDB,
-  // deleteDatasetFromDB
 } from '@/utils/datasetDB'
 
 const LAST_DATASET_KEY = 'lastDatasetId'
 
-// 定义每个数据集
-
-// 等价于
-// type row=Record<string,any>
-
 export const useDataStore = defineStore('data', () => {
-  // 定义存储多个数据集的数组（仅元数据，不含 rows）
   const datasets = ref<Dataset[]>([])
   const currentDataset = ref<Dataset | null>(null)
 
-  // IndexedDB之初始化回填
+  // IndexedDB 初始化回填
   //#region
   const hydrated = ref(false) // 是否已从 IndexedDB 完成初始化回填
-  // 首次进入时从 IndexedDB 拉全量数据到 dataset
+  let pendingDatasetId: string | null = null // hydration 完成前的切换请求暂存
+
   async function hydrateDatasets() {
     if (hydrated.value) return
-    const all = await getAllDatasetsFromDB()
-    // 仅存储元数据（不含行数据），选中数据集时才按需加载
-    datasets.value = all.map(d => ({ ...d, rows: [] }))
-    hydrated.value = true
+    try {
+      const all = await getAllDatasetsFromDB()
+      // 仅存储元数据（不含行数据），选中数据集时才按需加载
+      datasets.value = all.map(d => ({ ...d, rows: [] }))
 
-    // 回填完成后，尝试恢复上次使用的数据集
-    const lastId = localStorage.getItem(LAST_DATASET_KEY)
-    if (lastId) {
-      const found = datasets.value.find(d => d.id === lastId)
-      if (found) {
-        await loadDatasetRows(lastId)
+      // 回填完成后，尝试恢复上次使用的数据集
+      const lastId = localStorage.getItem(LAST_DATASET_KEY)
+      if (lastId) {
+        const found = datasets.value.find(d => d.id === lastId)
+        if (found) {
+          await loadDatasetRows(lastId)
+        }
+      }
+    } catch (e) {
+      console.error('数据集回填失败:', e)
+    } finally {
+      hydrated.value = true
+      // hydration 完成，处理暂存的切换请求（优先级高于 localStorage 恢复）
+      if (pendingDatasetId) {
+        setCurrentDataset(pendingDatasetId)
+        pendingDatasetId = null
       }
     }
   }
   //#endregion
 
-  // 双写入模式，平衡IndexedDB和Pinia
   function addDataset(data: Dataset): boolean {
-    // 完整数据写入 IndexedDB
     void upsertDatasetToDB(data)
-    // 内存仅存元数据
     datasets.value.push({ ...data, rows: [] })
     return true
   }
 
-  // 异步按需加载某数据集的完整行数据
   async function loadDatasetRows(id: string) {
-    const full = await getDatasetFromDB(id)
-    if (full && currentDataset.value?.id === id) {
-      currentDataset.value = full
+    try {
+      const full = await getDatasetFromDB(id)
+      if (full && currentDataset.value?.id === id) {
+        currentDataset.value = full
+      }
+    } catch (e) {
+      console.error(`加载数据集 ${id} 的行数据失败:`, e)
     }
   }
 
   function setCurrentDataset(id: string) {
+    // 如果 hydration 未完成，暂存请求，等完成后自动切换
+    if (!hydrated.value) {
+      pendingDatasetId = id
+      currentDataset.value = null
+      return
+    }
+
     const meta = datasets.value.find(d => d.id === id)
     if (!meta) {
       currentDataset.value = null
@@ -80,19 +91,14 @@ export const useDataStore = defineStore('data', () => {
     }
   })
 
-  // 初始化时需要一个 hydrate 过程（就是初始化时读取存储）
   void hydrateDatasets()
 
   return {
     datasets,
     currentDataset,
+    hydrated,
     hydrateDatasets,
     addDataset,
     setCurrentDataset,
-    // removeDataset,
   }
-  // 不再依赖 data store 的 persist localStorage，持久化职责转移给 IndexedDB
-  // }, {
-  //   persist: true
-  //
 })

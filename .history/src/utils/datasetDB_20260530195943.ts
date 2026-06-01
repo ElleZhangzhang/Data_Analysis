@@ -1,10 +1,13 @@
 import { openDB, type DBSchema } from 'idb' // node_modules有
 import type { Dataset } from '@/types/index'
 
-const DB_NAME = 'data-platform'
-const DB_VERSION = 1
-const STORE_NAME = 'datasets'
+// 1. 定义数据库元信息
+const DB_NAME = 'data-platform' // 整个库的名字
+const DB_VERSION = 1 // 版本号
+const STORE_NAME = 'datasets' // 本数据集对应的仓库名
 
+// 2. 用 idb 的 openDB 打开数据库，并在 upgrade 阶段创建对象仓库
+//#region
 interface DataPlatformDB extends DBSchema {
   datasets: {
     key: string
@@ -19,7 +22,10 @@ const dbPromise = openDB<DataPlatformDB>(DB_NAME, DB_VERSION, {
     }
   }
 })
+//#endregion
 
+// 3. 提供 4 个最小能力函数
+//#region
 // 一次性读取全部数据集
 export async function getAllDatasetsFromDB(): Promise<Dataset[]> {
   const db = await dbPromise
@@ -40,3 +46,4 @@ export async function upsertDatasetToDB(dataset: Dataset): Promise<void> {
 //   const db = await dbPromise
 //   await db.delete(STORE_NAME, id)
 // }
+//#endregion
