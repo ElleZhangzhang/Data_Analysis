@@ -6,6 +6,7 @@ import {
   getAllDatasetsFromDB,
   getDatasetFromDB,
   upsertDatasetToDB,
+  deleteDatasetFromDB,
 } from '@/utils/datasetDB'
 
 const LAST_DATASET_KEY = 'lastDatasetId'
@@ -47,10 +48,16 @@ export const useDataStore = defineStore('data', () => {
   }
   //#endregion
 
-  function addDataset(data: Dataset): boolean {
-    void upsertDatasetToDB(data)
-    datasets.value.push({ ...data, rows: [] })
-    return true
+  async function addDataset(data: Dataset): Promise<boolean> {
+    try {
+      await upsertDatasetToDB(data)
+      datasets.value.push({ ...data, rows: [] })
+      return true
+    } catch (e) {
+      console.error('数据集持久化失败:', e)
+      alert(`数据集 "${data.name}" 持久化失败，请检查浏览器存储状态后重试`)
+      return false
+    }
   }
 
   async function loadDatasetRows(id: string) {
@@ -82,6 +89,35 @@ export const useDataStore = defineStore('data', () => {
     void loadDatasetRows(id)
   }
 
+  async function removeDataset(id: string): Promise<boolean> {
+    const target = datasets.value.find(d => d.id === id)
+    if (!target) return false
+
+    try {
+      await deleteDatasetFromDB(id)
+    } catch (e) {
+      console.error(`删除数据集 ${id} 持久化数据失败:`, e)
+      alert(`删除 "${target.name}" 失败，请重试`)
+      return false
+    }
+
+    // 从内存列表中移除
+    datasets.value = datasets.value.filter(d => d.id !== id)
+
+    // 如果删除的是当前选中的数据集，清空选中状态
+    if (currentDataset.value?.id === id) {
+      currentDataset.value = null
+    }
+
+    // 如果删除的是 localStorage 中记录的上次使用数据集，清除残留 ID
+    const lastId = localStorage.getItem(LAST_DATASET_KEY)
+    if (lastId === id) {
+      localStorage.removeItem(LAST_DATASET_KEY)
+    }
+
+    return true
+  }
+
   // 持久化 currentDataset 到 localStorage，刷新后恢复
   watch(currentDataset, (ds) => {
     if (ds) {
@@ -100,5 +136,6 @@ export const useDataStore = defineStore('data', () => {
     hydrateDatasets,
     addDataset,
     setCurrentDataset,
+    removeDataset,
   }
 })

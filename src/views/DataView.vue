@@ -55,7 +55,11 @@ const currentDataset = dataStore.currentDataset; // 目前默认是第一个
         >
           <i class="icon-add">+</i> 添加新档案
         </button>
-        <button class="action-btn_sidebar btn-delete-chic">
+        <button
+          class="action-btn_sidebar btn-delete-chic"
+          :disabled="!dataStore.currentDataset"
+          @click="handleRemoveDataset"
+        >
           <i class="icon-delete">✕</i> 移除
         </button>
       </div>
@@ -225,6 +229,16 @@ const handleUpload = async (event: Event) => {
 };
 
 //#endregion
+
+// ----------删除数据集---------
+const handleRemoveDataset = async () => {
+  const ds = currentDataset?.value;
+  if (!ds) return;
+
+  if (!confirm(`确定删除数据集 "${ds.name}" 吗？（包含该数据集的所有图表）`)) return;
+
+  await dataStore.removeDataset(ds.id);
+};
 
 // ✨ 新增：获取当前已经创建过的数据集的图表
 const currentCharts = computed(() => {

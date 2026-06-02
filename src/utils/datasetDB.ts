@@ -42,8 +42,8 @@ export async function upsertDatasetToDB(dataset: Dataset): Promise<void> {
   await db.put(STORE_NAME, dataset)
 }
 
-// export async function deleteDatasetFromDB(id: string): Promise<void> {
-//   const db = await dbPromise
-//   await db.delete(STORE_NAME, id)
-// }
+export async function deleteDatasetFromDB(id: string): Promise<void> {
+  const db = await dbPromise
+  await db.delete(STORE_NAME, id)
+}
 //#endregion
