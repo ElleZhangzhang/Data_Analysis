@@ -42,7 +42,7 @@ function getDataStats(columns: ColumnDef[], sampleData: DataRow[]) {
       name: col.keyName,
       label: col.label,
       type: col.type,
-      sampleValues: values.slice(0, 20), // 存疑
+      sampleValues: values.slice(0, 20),
       stats: {
         count: values.length,
         uniqueCount,

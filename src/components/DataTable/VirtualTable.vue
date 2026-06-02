@@ -17,13 +17,17 @@
           :key="index"
           class="table-row-mock"
         >
-          <div
+          <el-tooltip
             v-for="(value, index) in getValuesWithoutId(obj)"
             :key="index"
-            class="table-cell"
+            :content="String(value ?? '')"
+            placement="top"
+            :show-after="300"
           >
-            {{ value }}
-          </div>
+            <div class="table-cell">
+              {{ value }}
+            </div>
+          </el-tooltip>
         </div>
       </div>
     </div>
@@ -68,6 +72,9 @@ const getValuesWithoutId = (obj: Record<string, unknown>) => {
 .table-cell {
   flex: 1;
   padding: 0 28px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* .zhanweiHeight {

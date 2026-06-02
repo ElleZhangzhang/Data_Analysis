@@ -12,14 +12,14 @@ type Recommendation = {
   xAxis: string;
   yAxis: string;
   reason: string;
-  transform?: ChartTransform;
+  transform?: ChartTransform; // 可选的数据转换配置？
 };
 
 interface Props {
   modelValue: boolean;
 }
 
-const props = defineProps<Props>();
+const props = defineProps<Props>(); // JS写法：defineProps(['modelValue']);
 const emit = defineEmits<{
   "update:modelValue": [value: boolean];
 }>();
@@ -41,6 +41,7 @@ const fetchRecommendations = async (force = false) => {
     const cached = dashboardStore.getRecommendations(currentDataset.value.id);
     if (cached) {
       recommendations.value = cached;
+      // 我认为接下来用过缓存了，就得清除缓存了，下次再重新请求获取新的推荐
       return;
     }
   }
@@ -81,7 +82,7 @@ const createChart = (recommendation: Recommendation) => {
   };
 
   dashboardStore.addChart(chartConfig);
-  emit("update:modelValue", false);
+  emit("update:modelValue", false); // 找ChartConfigDialog的父组件，关闭弹窗
 };
 
 // 弹窗打开时自动获取推荐
@@ -106,8 +107,12 @@ watch(
       <div class="dialog-header">
         <h3>🤖 AI 图表推荐</h3>
         <div class="header-right">
-          <button class="refresh-btn" :disabled="loading" @click="fetchRecommendations(true)">
-            {{ loading ? '⏳' : '🔄' }} 重新分析
+          <button
+            class="refresh-btn"
+            :disabled="loading"
+            @click="fetchRecommendations(true)"
+          >
+            {{ loading ? "⏳" : "🔄" }} 重新分析
           </button>
           <button class="close-btn" @click="emit('update:modelValue', false)">
             ×

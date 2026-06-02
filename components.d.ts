@@ -17,6 +17,7 @@ declare module 'vue' {
     ChartEmbedNodeView: typeof import('./src/components/ReportEditor/ChartEmbedNodeView.vue')['default']
     ChartRecommendDialog: typeof import('./src/components/Charts/ChartRecommendDialog.vue')['default']
     ChartWidget: typeof import('./src/components/Dashboard/ChartWidget.vue')['default']
+    ElTooltip: typeof import('element-plus/es')['ElTooltip']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     VirtualTable: typeof import('./src/components/DataTable/VirtualTable.vue')['default']

@@ -33,7 +33,6 @@ function getDataStats(columns: ColumnDef[], sampleData: DataRow[]) {
   return columns.map(col => {
     // 过滤null
     const values = sampleData.map(row => row[col.keyName]).filter(v => v != null)
-    // 如果是数值字段，尝试转换成数字并计算min、max
     const numbers = values.map(v => toNumber(v)).filter((v): v is number => v !== null)
     // 去重，用于计算唯一值比例
     const uniqueCount = new Set(values.map(v => String(v))).size
@@ -42,7 +41,7 @@ function getDataStats(columns: ColumnDef[], sampleData: DataRow[]) {
       name: col.keyName,
       label: col.label,
       type: col.type,
-      sampleValues: values.slice(0, 20), // 存疑
+      sampleValues: values.slice(0, 20),
       stats: {
         count: values.length,
         uniqueCount,

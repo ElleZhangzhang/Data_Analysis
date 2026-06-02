@@ -3,7 +3,7 @@ import { ref, computed } from "vue";
 import { storeToRefs } from "pinia";
 import { useDataStore } from "@/stores/data";
 import { useDashboardStore } from "@/stores/dashboard";
-import { recommendCharts } from "@/apis/qianwen.ts";
+import { recommendCharts } from "@/apis/qianwen";
 import type { ChartConfig, ChartTransform } from "@/types";
 
 type Recommendation = {
@@ -12,14 +12,14 @@ type Recommendation = {
   xAxis: string;
   yAxis: string;
   reason: string;
-  transform?: ChartTransform;
+  transform?: ChartTransform; // 可选的数据转换配置？
 };
 
 interface Props {
   modelValue: boolean;
 }
 
-const props = defineProps<Props>();
+const props = defineProps<Props>(); // JS写法：defineProps(['modelValue']);
 const emit = defineEmits<{
   "update:modelValue": [value: boolean];
 }>();
@@ -32,9 +32,20 @@ const { currentDataset } = storeToRefs(dataStore);
 const loading = ref(false);
 const recommendations = ref<Recommendation[]>([]); // AI 推荐结果
 
-// TODO: 获取 AI 推荐
-const fetchRecommendations = async () => {
+// 获取 AI 推荐（优先使用缓存）
+const fetchRecommendations = async (force = false) => {
   if (!currentDataset.value) return;
+
+  // 有缓存且非强制刷新，直接显示缓存
+  if (!force) {
+    const cached = dashboardStore.getRecommendations(currentDataset.value.id);
+    if (cached) {
+      recommendations.value = cached;
+      // 我认为接下来用过缓存了，就得清除缓存了，下次再重新请求获取新的推荐
+      dashboardStore.clearRecommendations(currentDataset.value.id);
+      return;
+    }
+  }
 
   loading.value = true;
   try {
@@ -45,6 +56,8 @@ const fetchRecommendations = async () => {
     );
 
     recommendations.value = result;
+    // 写入缓存
+    dashboardStore.saveRecommendations(currentDataset.value.id, result);
   } catch (error) {
     alert("AI 推荐失败：" + (error as Error).message);
   } finally {
@@ -52,7 +65,7 @@ const fetchRecommendations = async () => {
   }
 };
 
-// TODO: 创建图表
+// 创建图表
 const createChart = (recommendation: Recommendation) => {
   if (!currentDataset.value) return;
 
@@ -70,7 +83,7 @@ const createChart = (recommendation: Recommendation) => {
   };
 
   dashboardStore.addChart(chartConfig);
-  emit("update:modelValue", false);
+  emit("update:modelValue", false); // 找ChartConfigDialog的父组件，关闭弹窗
 };
 
 // 弹窗打开时自动获取推荐
@@ -94,9 +107,18 @@ watch(
     <div class="dialog-content" @click.stop>
       <div class="dialog-header">
         <h3>🤖 AI 图表推荐</h3>
-        <button class="close-btn" @click="emit('update:modelValue', false)">
-          ×
-        </button>
+        <div class="header-right">
+          <button
+            class="refresh-btn"
+            :disabled="loading"
+            @click="fetchRecommendations(true)"
+          >
+            {{ loading ? "⏳" : "🔄" }} 重新分析
+          </button>
+          <button class="close-btn" @click="emit('update:modelValue', false)">
+            ×
+          </button>
+        </div>
       </div>
 
       <div class="dialog-body">
@@ -194,6 +216,34 @@ watch(
   font-size: 18px;
   font-weight: 600;
   color: #1f2937;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.refresh-btn {
+  padding: 6px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: white;
+  color: #6b7280;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.refresh-btn:hover:not(:disabled) {
+  border-color: #3b82f6;
+  color: #3b82f6;
+  background: #eff6ff;
+}
+
+.refresh-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .close-btn {
