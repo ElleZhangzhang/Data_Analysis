@@ -44,23 +44,28 @@ const { isDragging, position, setPosition, handleMouseDown } = useDrag(
   }
 );
 
-//#region --公共 ECharts 配置模板（各类型通过展开覆盖差异部分）
-function getBaseChartOption() {
-  return {
-    title: {
-      text: props.config.title,
-      left: "center",
-      textStyle: { fontSize: 16, fontWeight: 600 },
-    },
-    grid: {
-      left: "3%",
-      right: "4%",
-      bottom: "3%",
-      containLabel: true,
-    },
-  };
+//#region --采样函数
+const MAX_POINTS = 1000;
+function sampleCategorySeries(
+  xData: Array<string | number>,
+  yData: Array<string | number>
+) {
+  if (xData.length <= MAX_POINTS) {
+    return { xData, yData, sampled: false };
+  }
+
+  const step = Math.ceil(xData.length / MAX_POINTS);
+  const sampledX: Array<string | number> = [];
+  const sampledY: Array<string | number> = [];
+
+  for (let i = 0; i < xData.length; i += step) {
+    sampledX.push(xData[i] as string | number);
+    sampledY.push(yData[i] as string | number);
+  }
+
+  return { xData: sampledX, yData: sampledY, sampled: true };
 }
-//#endregion
+// #endregion
 
 // #region --数据分箱函数
 function buildBinningSeries(data: DataRow[], field: string, binCount = 8) {
@@ -82,14 +87,12 @@ function buildBinningSeries(data: DataRow[], field: string, binCount = 8) {
     };
   }
 
-  // 3<= 分箱数 <=20
-  const safeBinCount = Math.max(3, Math.min(20, Math.floor(binCount)));
+  const safeBinCount = Math.max(3, Math.min(20, Math.floor(binCount))); // 分箱数
   const step = (max - min) / safeBinCount; // 步长
   const counts = new Array(safeBinCount).fill(0);
 
   values.forEach((value) => {
-    const rawIndex = Math.floor((value - min) / step); // 计算该呆在哪个箱子里
-    // 0<= 所在箱子索引 < 20
+    const rawIndex = Math.floor((value - min) / step); // 计算该呆在哪个箱
     const index = Math.min(safeBinCount - 1, Math.max(0, rawIndex));
     counts[index] += 1;
   });
@@ -179,12 +182,25 @@ const generateBarChart = () => {
       binning.binCount ?? 8
     );
     return {
-      ...getBaseChartOption(),
+      title: {
+        text: props.config.title,
+        left: "center",
+        textStyle: {
+          fontSize: 16,
+          fontWeight: 600,
+        },
+      },
       tooltip: {
         trigger: "axis",
         axisPointer: {
           type: "shadow",
         },
+      },
+      grid: {
+        left: "3%",
+        right: "4%",
+        bottom: "3%",
+        containLabel: true,
       },
       xAxis: {
         type: "category",
@@ -210,27 +226,43 @@ const generateBarChart = () => {
     };
   }
 
-  // 提取数值坐标点，由 ECharts 内置 LTTB 采样自动降采样
-  const data = props.data
-    .map((row) => {
-      const x = Number(row[props.config.xAxis]);
-      const y = Number(row[props.config.yAxis]);
-      if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
-      return [x, y] as [number, number];
-    })
-    .filter((p): p is [number, number] => p !== null);
+  // 从数据中提取 X 轴和 Y 轴的值
+  const rawXData = props.data.map(
+    (row) => row[props.config.xAxis] as string | number
+  );
+  const rawYData = props.data.map(
+    (row) => row[props.config.yAxis] as string | number
+  );
+  const optimized = sampleCategorySeries(rawXData, rawYData);
 
   return {
-    ...getBaseChartOption(),
+    title: {
+      text: props.config.title,
+      left: "center",
+      textStyle: {
+        fontSize: 16,
+        fontWeight: 600,
+      },
+    },
     tooltip: {
       trigger: "axis",
       axisPointer: {
         type: "shadow",
       },
     },
+    grid: {
+      left: "3%",
+      right: "4%",
+      bottom: "3%",
+      containLabel: true,
+    },
     xAxis: {
-      type: "value",
-      name: props.config.xAxis,
+      type: "category",
+      data: optimized.xData,
+      axisLabel: {
+        rotate: 45, // 标签旋转 45 度，避免重叠
+        interval: 0, // 显示所有标签
+      },
     },
     yAxis: {
       type: "value",
@@ -239,8 +271,7 @@ const generateBarChart = () => {
       {
         name: props.config.yAxis,
         type: "bar",
-        data,
-        sampling: "lttb",
+        data: optimized.yData,
         itemStyle: {
           color: "#3b82f6",
         },
@@ -259,9 +290,22 @@ const generateLineChart = () => {
       binning.binCount ?? 8
     );
     return {
-      ...getBaseChartOption(),
+      title: {
+        text: props.config.title,
+        left: "center",
+        textStyle: {
+          fontSize: 16,
+          fontWeight: 600,
+        },
+      },
       tooltip: {
         trigger: "axis",
+      },
+      grid: {
+        left: "3%",
+        right: "4%",
+        bottom: "3%",
+        containLabel: true,
       },
       xAxis: {
         type: "category",
@@ -288,24 +332,36 @@ const generateLineChart = () => {
     };
   }
 
-  // 提取数值坐标点，由 ECharts 内置 LTTB 采样自动降采样
-  const lineData = props.data
-    .map((row) => {
-      const x = Number(row[props.config.xAxis]);
-      const y = Number(row[props.config.yAxis]);
-      if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
-      return [x, y] as [number, number];
-    })
-    .filter((p): p is [number, number] => p !== null);
+  const rawXData = props.data.map(
+    (row) => row[props.config.xAxis] as string | number
+  );
+  const rawYData = props.data.map(
+    (row) => row[props.config.yAxis] as string | number
+  );
+  const optimized = sampleCategorySeries(rawXData, rawYData);
 
   return {
-    ...getBaseChartOption(),
+    title: {
+      text: props.config.title,
+      left: "center",
+      textStyle: {
+        fontSize: 16,
+        fontWeight: 600,
+      },
+    },
     tooltip: {
       trigger: "axis",
     },
+    grid: {
+      left: "3%",
+      right: "4%",
+      bottom: "3%",
+      containLabel: true,
+    },
     xAxis: {
-      type: "value",
-      name: props.config.xAxis,
+      type: "category",
+      data: optimized.xData,
+      boundaryGap: false,
     },
     yAxis: {
       type: "value",
@@ -314,13 +370,13 @@ const generateLineChart = () => {
       {
         name: props.config.yAxis,
         type: "line",
-        data: lineData,
-        sampling: "lttb",
-        smooth: true,
+        data: optimized.yData,
+        smooth: true, // 平滑曲线
         itemStyle: {
           color: "#3b82f6",
         },
         areaStyle: {
+          // 填充区域
           color: "rgba(59, 130, 246, 0.1)",
         },
       },
@@ -339,9 +395,22 @@ const generateScatterChart = () => {
     .filter((point): point is [number, number] => point !== null);
 
   return {
-    ...getBaseChartOption(),
+    title: {
+      text: props.config.title,
+      left: "center",
+      textStyle: {
+        fontSize: 16,
+        fontWeight: 600,
+      },
+    },
     tooltip: {
       trigger: "item",
+    },
+    grid: {
+      left: "3%",
+      right: "4%",
+      bottom: "3%",
+      containLabel: true,
     },
     xAxis: {
       type: "value",
@@ -356,7 +425,6 @@ const generateScatterChart = () => {
         name: `${props.config.xAxis} vs ${props.config.yAxis}`,
         type: "scatter",
         data: points,
-        sampling: "lttb",
         itemStyle: {
           color: "#3b82f6",
         },
@@ -384,7 +452,14 @@ const generatePieChart = () => {
   }));
 
   return {
-    ...getBaseChartOption(),
+    title: {
+      text: props.config.title,
+      left: "center",
+      textStyle: {
+        fontSize: 16,
+        fontWeight: 600,
+      },
+    },
     tooltip: {
       trigger: "item",
       formatter: "{b}: {c} ({d}%)",

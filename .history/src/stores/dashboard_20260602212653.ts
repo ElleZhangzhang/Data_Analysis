@@ -13,7 +13,7 @@ import type { Ref } from 'vue'
 export const useDashboardStore = defineStore('dashboard', () => {
   const charts: Ref<ChartConfig[]> = ref([])
 
-  // AI推荐缓存的相关函数
+  // AI 图表推荐缓存，keyed by datasetId
   //#region
   const chartRecommendations = ref<Record<string, any[]>>({})
 
@@ -33,8 +33,6 @@ export const useDashboardStore = defineStore('dashboard', () => {
     return getCharts
   }
 
-  // 图表相关函数
-  // #region
   // 添加图表
   const addChart = (chart: ChartConfig) => {
     charts.value.push(chart)
@@ -44,7 +42,6 @@ export const useDashboardStore = defineStore('dashboard', () => {
   const deleteChart = (chartId: string) => {
     charts.value = charts.value.filter(c => c.id !== chartId)
   }
-  //#endregion
 
   const updateChartPosition = function (chartId: string, position: { x: number; y: number }) {
     // 提示:

@@ -108,6 +108,7 @@ function validateRecommendations(
 
   return valid.slice(0, 3)
 }
+// #endregion
 
 // TODO: 新增图表推荐函数
 export async function recommendCharts(columns: ColumnDef[], sampleData: DataRow[]) {
@@ -192,7 +193,6 @@ ${JSON.stringify(dataDescription, null, 2)}
     throw error
   }
 }
-// #endregion
 
 function statsToText(columns: ColumnDef[], sampleData: DataRow[]): string {
   const stats = getDataStats(columns, sampleData)

@@ -11,8 +11,6 @@ type Recommendation = {
 
 const CHART_TYPES = new Set(['bar', 'line', 'pie', 'scatter'])
 
-// #region AI推荐相关函数
-// 确定ai推荐的x、y轴合法
 function normalizeFieldName(field: string, columns: ColumnDef[]): string {
   const target = String(field || '').trim().toLowerCase()
   if (!target) return ''
@@ -33,7 +31,6 @@ function toNumber(value: unknown): number | null {
   return Number.isFinite(num) ? num : null
 }
 
-// 深入计算数据关键点：唯一值、min、max，用于辅助分析和推荐
 function getDataStats(columns: ColumnDef[], sampleData: DataRow[]) {
   return columns.map(col => {
     // 过滤null
@@ -67,16 +64,13 @@ function validateRecommendations(
   const valid: Recommendation[] = []
 
   for (const rec of recommendations || []) {
-    // 1. 校验图表类型合法
     const type = String(rec?.type || '').toLowerCase()
     if (!CHART_TYPES.has(type)) continue
 
-    // 2. 确保字段存在，以能否找到对应的 keyName 为准
     const xAxis = normalizeFieldName(rec?.xAxis, columns)
     const yAxis = normalizeFieldName(rec?.yAxis, columns)
     if (!xAxis || !yAxis) continue
 
-    // 3. 去重：同type x y组合的话，只保留一条
     const dedupKey = `${type}:${xAxis}:${yAxis}`
     if (dedup.has(dedupKey)) continue
     dedup.add(dedupKey)
@@ -107,6 +101,81 @@ function validateRecommendations(
   }
 
   return valid.slice(0, 3)
+}
+
+function statsToText(columns: ColumnDef[], sampleData: DataRow[]): string {
+  const stats = getDataStats(columns, sampleData)
+  return stats.map(col => {
+    const s = col.stats
+    let line = `- ${col.label || col.name} (${col.type}): ${s.count}个值`
+    if (s.uniqueCount > 0) line += `, 去重后${s.uniqueCount}个`
+    if (s.min != null && s.max != null) line += `, 范围[${s.min}, ${s.max}]`
+    return line
+  }).join('\n')
+}
+
+export async function generateReport(
+  datasetName: string,
+  columns: ColumnDef[],
+  sampleData: DataRow[],
+  charts: ChartConfig[]
+) {
+  const dataDescription = statsToText(columns, sampleData)
+  const chartList = charts.map((c, i) =>
+    `- 图表"${c.title}"(c${i}): X轴=${c.xAxis}, Y轴=${c.yAxis}，类型=${c.type}`
+  ).join('\n') || '（暂无图表）'
+
+  const prompt = `你是专业数据分析报告撰写专家。根据以下数据集信息和图表，生成一份完整的数据分析报告。
+
+## 数据集：${datasetName}
+
+### 字段统计
+${dataDescription}
+
+### 已有图表
+${chartList}
+
+## 输出要求
+1. 输出完整的 HTML 文档片段（不要\`\`\`html标记，不要<html><body>，直接输出内容）。
+2. 报告结构必须包含：
+   - <h1>报告标题</h1>
+   - <h2>概述</h2> —— 一段总体分析
+   - <h2>数据概况</h2> —— 描述数据量、字段构成等
+   - <h2>可视化分析</h2> —— 逐一分析已有图表的洞察，用 <div data-chart-id="c0"></div>、<div data-chart-id="c1"></div> 等标记图表插入位置（使用上面已有图表中括号内的id），每个图表前加<h3>小节
+   - <h2>核心发现</h2> —— <ul><li>发现1</li>...</ul>
+   - <h2>建议</h2> —— <ul><li>建议1</li>...</ul>
+3. 使用规范的 HTML 标签：<p>、<strong>、<ul>/<ol>、<li>、<table>（如需）、<br>。
+4. 语言风格专业、严谨、中文。
+5. 分析要有数据支撑，结合字段统计给出具体洞察。
+6. 不要在图表 div 中写额外文字，空着就好。`
+
+  try {
+    const res = await fetch("/api/compatible-mode/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${import.meta.env.VITE_DEEPSEEK_KEY}`,
+      },
+      body: JSON.stringify({
+        messages: [
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        model: "qwen-turbo",
+        stream: false,
+      }),
+    });
+
+    const data = await res.json()
+    const content = data.choices[0].message.content as string
+    const cleaned = content.replace(/```html|```/g, '').trim()
+    return cleaned
+  } catch (error) {
+    console.error('AI 报告生成失败:', error)
+    throw error
+  }
 }
 
 // TODO: 新增图表推荐函数
@@ -192,79 +261,5 @@ ${JSON.stringify(dataDescription, null, 2)}
     throw error
   }
 }
-// #endregion
 
-function statsToText(columns: ColumnDef[], sampleData: DataRow[]): string {
-  const stats = getDataStats(columns, sampleData)
-  return stats.map(col => {
-    const s = col.stats
-    let line = `- ${col.label || col.name} (${col.type}): ${s.count}个值`
-    if (s.uniqueCount > 0) line += `, 去重后${s.uniqueCount}个`
-    if (s.min != null && s.max != null) line += `, 范围[${s.min}, ${s.max}]`
-    return line
-  }).join('\n')
-}
 
-export async function generateReport(
-  datasetName: string,
-  columns: ColumnDef[],
-  sampleData: DataRow[],
-  charts: ChartConfig[]
-) {
-  const dataDescription = statsToText(columns, sampleData)
-  const chartList = charts.map((c, i) =>
-    `- 图表"${c.title}"(c${i}): X轴=${c.xAxis}, Y轴=${c.yAxis}，类型=${c.type}`
-  ).join('\n') || '（暂无图表）'
-
-  const prompt = `你是专业数据分析报告撰写专家。根据以下数据集信息和图表，生成一份完整的数据分析报告。
-
-## 数据集：${datasetName}
-
-### 字段统计
-${dataDescription}
-
-### 已有图表
-${chartList}
-
-## 输出要求
-1. 输出完整的 HTML 文档片段（不要\`\`\`html标记，不要<html><body>，直接输出内容）。
-2. 报告结构必须包含：
-   - <h1>报告标题</h1>
-   - <h2>概述</h2> —— 一段总体分析
-   - <h2>数据概况</h2> —— 描述数据量、字段构成等
-   - <h2>可视化分析</h2> —— 逐一分析已有图表的洞察，用 <div data-chart-id="c0"></div>、<div data-chart-id="c1"></div> 等标记图表插入位置（使用上面已有图表中括号内的id），每个图表前加<h3>小节
-   - <h2>核心发现</h2> —— <ul><li>发现1</li>...</ul>
-   - <h2>建议</h2> —— <ul><li>建议1</li>...</ul>
-3. 使用规范的 HTML 标签：<p>、<strong>、<ul>/<ol>、<li>、<table>（如需）、<br>。
-4. 语言风格专业、严谨、中文。
-5. 分析要有数据支撑，结合字段统计给出具体洞察。
-6. 不要在图表 div 中写额外文字，空着就好。`
-
-  try {
-    const res = await fetch("/api/compatible-mode/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${import.meta.env.VITE_DEEPSEEK_KEY}`,
-      },
-      body: JSON.stringify({
-        messages: [
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        model: "qwen-turbo",
-        stream: false,
-      }),
-    });
-
-    const data = await res.json()
-    const content = data.choices[0].message.content as string
-    const cleaned = content.replace(/```html|```/g, '').trim()
-    return cleaned
-  } catch (error) {
-    console.error('AI 报告生成失败:', error)
-    throw error
-  }
-}

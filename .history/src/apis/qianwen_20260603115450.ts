@@ -11,7 +11,6 @@ type Recommendation = {
 
 const CHART_TYPES = new Set(['bar', 'line', 'pie', 'scatter'])
 
-// #region AI推荐相关函数
 // 确定ai推荐的x、y轴合法
 function normalizeFieldName(field: string, columns: ColumnDef[]): string {
   const target = String(field || '').trim().toLowerCase()
@@ -192,7 +191,6 @@ ${JSON.stringify(dataDescription, null, 2)}
     throw error
   }
 }
-// #endregion
 
 function statsToText(columns: ColumnDef[], sampleData: DataRow[]): string {
   const stats = getDataStats(columns, sampleData)
