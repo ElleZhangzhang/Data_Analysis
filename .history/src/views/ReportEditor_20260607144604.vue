@@ -227,7 +227,6 @@ async function exportPDF() {
       heightLeft -= pdfHeight;
     }
 
-    // 下载：浏览器弹出下载对话框，文件名如 员工数据_分析报告.pdf。
     pdf.save(`${currentDataset.value.name}_分析报告.pdf`);
   } catch (e) {
     console.error("PDF 导出失败", e);

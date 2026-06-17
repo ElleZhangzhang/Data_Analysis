@@ -217,17 +217,13 @@ async function exportPDF() {
     pdf.addImage(imgData, "PNG", xOffset, position, imgWidth, imgHeight);
     heightLeft -= pdfHeight;
 
-    // 后续页：把图片往上移，显示剩余部分
     while (heightLeft > 0) {
-      // 图片往上移一页
       position -= pdfHeight;
-      // 新建一页
       pdf.addPage();
       pdf.addImage(imgData, "PNG", xOffset, position, imgWidth, imgHeight);
       heightLeft -= pdfHeight;
     }
 
-    // 下载：浏览器弹出下载对话框，文件名如 员工数据_分析报告.pdf。
     pdf.save(`${currentDataset.value.name}_分析报告.pdf`);
   } catch (e) {
     console.error("PDF 导出失败", e);

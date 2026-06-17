@@ -11,34 +11,6 @@ type Recommendation = {
 
 const CHART_TYPES = new Set(['bar', 'line', 'pie', 'scatter'])
 
-// 带指数退避的 fetch 重试
-async function requestWithRetry(url: string, options: RequestInit, maxRetries = 3): Promise<Response> {
-  for (let i = 0; ; i++) {
-    try {
-      const res = await fetch(url, options)
-      if (res.ok) return res
-      // 仅重试 429(限流) 和 5xx(服务端错误)
-      if ((res.status === 429 || res.status >= 500) && i < maxRetries) {
-        const delay = Math.min(1000 * 2 ** i, 8000)
-        console.warn(`API ${res.status}，第${i + 1}次重试，等待${delay}ms...`)
-        await new Promise(r => setTimeout(r, delay))
-        continue
-      }
-      // 非可重试错误 → 读 body 抛异常，让调用方看到具体错误信息
-      const body = await res.text()
-      throw new Error(`API ${res.status}: ${body.slice(0, 200)}`)
-    } catch (err) {
-      if (i < maxRetries) {
-        const delay = Math.min(1000 * 2 ** i, 8000)
-        console.warn(`网络错误，第${i + 1}次重试，等待${delay}ms...`, err)
-        await new Promise(r => setTimeout(r, delay))
-        continue
-      }
-      throw err
-    }
-  }
-}
-
 // #region AI推荐相关函数
 // 确定ai推荐的x、y轴合法
 function normalizeFieldName(field: string, columns: ColumnDef[]): string {
@@ -186,7 +158,7 @@ ${JSON.stringify(dataDescription, null, 2)}
 
   // 步骤3: 调用 API
   try {
-    const res = await requestWithRetry("/api/compatible-mode/v1/chat/completions", {
+    const res = await fetch("/api/compatible-mode/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -275,7 +247,7 @@ ${chartList}
 6. 不要在图表 div 中写额外文字，空着就好。`
 
   try {
-    const res = await requestWithRetry("/api/compatible-mode/v1/chat/completions", {
+    const res = await fetch("/api/compatible-mode/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

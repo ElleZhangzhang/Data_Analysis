@@ -1,32 +1,32 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed, nextTick } from "vue";
-import { useRouter } from "vue-router";
-import { useEditor, EditorContent } from "@tiptap/vue-3";
-import StarterKit from "@tiptap/starter-kit";
-import Placeholder from "@tiptap/extension-placeholder";
-import { Table } from "@tiptap/extension-table";
-import { TableRow } from "@tiptap/extension-table-row";
-import { TableCell } from "@tiptap/extension-table-cell";
-import { TableHeader } from "@tiptap/extension-table-header";
-import { useDataStore } from "@/stores/data";
-import { useDashboardStore } from "@/stores/dashboard";
-import { generateReport } from "@/apis/qianwen";
-import { ChartEmbedExtension } from "@/components/ReportEditor/ChartEmbedExtension";
-import type { ChartConfig } from "@/types";
+import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
+import { useEditor, EditorContent } from '@tiptap/vue-3'
+import StarterKit from '@tiptap/starter-kit'
+import Placeholder from '@tiptap/extension-placeholder'
+import { Table } from '@tiptap/extension-table'
+import { TableRow } from '@tiptap/extension-table-row'
+import { TableCell } from '@tiptap/extension-table-cell'
+import { TableHeader } from '@tiptap/extension-table-header'
+import { useDataStore } from '@/stores/data'
+import { useDashboardStore } from '@/stores/dashboard'
+import { generateReport } from '@/apis/qianwen'
+import { ChartEmbedExtension } from '@/components/ReportEditor/ChartEmbedExtension'
+import type { ChartConfig } from '@/types'
 
-const router = useRouter();
-const dataStore = useDataStore();
-const dashboardStore = useDashboardStore();
+const router = useRouter()
+const dataStore = useDataStore()
+const dashboardStore = useDashboardStore()
 
-const loading = ref(false);
-const error = ref("");
-const exporting = ref(false);
+const loading = ref(false)
+const error = ref('')
+const exporting = ref(false)
 
-const currentDataset = computed(() => dataStore.currentDataset);
+const currentDataset = computed(() => dataStore.currentDataset)
 const charts = computed(() => {
-  if (!currentDataset.value) return [];
-  return dashboardStore.getChartsByDataset(currentDataset.value.id);
-});
+  if (!currentDataset.value) return []
+  return dashboardStore.getChartsByDataset(currentDataset.value.id)
+})
 
 // TipTap Editor
 const editor = useEditor({
@@ -35,7 +35,7 @@ const editor = useEditor({
       heading: { levels: [1, 2, 3] },
     }),
     Placeholder.configure({
-      placeholder: "在此编辑分析报告内容...",
+      placeholder: '在此编辑分析报告内容...',
     }),
     Table,
     TableRow,
@@ -45,20 +45,20 @@ const editor = useEditor({
   ],
   editorProps: {
     attributes: {
-      class: "prose prose-sm max-w-none",
+      class: 'prose prose-sm max-w-none',
     },
   },
-});
+})
 
-// 生成ai报告
+// Generate AI report
 async function handleGenerateReport() {
   if (!currentDataset.value) {
-    error.value = "请先选择一个数据集";
-    return;
+    error.value = '请先选择一个数据集'
+    return
   }
 
-  loading.value = true;
-  error.value = "";
+  loading.value = true
+  error.value = ''
 
   try {
     let html = await generateReport(
@@ -66,177 +66,146 @@ async function handleGenerateReport() {
       currentDataset.value.columns,
       currentDataset.value.rows.slice(0, 100),
       charts.value
-    );
+    )
 
     // 将 AI 返回的 data-chart-id="c0" / "c1" 等替换为实际的 chart UUID
     charts.value.forEach((chart, index) => {
-      const pattern = new RegExp(`data-chart-id="c${index}"`, "g");
-      html = html.replace(
-        pattern,
-        `data-chart-id="${chart.id}" data-chart-title="${chart.title}" data-chart-type="${chart.type}"`
-      );
-    });
+      const pattern = new RegExp(`data-chart-id="c${index}"`, 'g')
+      html = html.replace(pattern, `data-chart-id="${chart.id}" data-chart-title="${chart.title}" data-chart-type="${chart.type}"`)
+    })
 
-    editor.value?.commands.setContent(html); ////
-    // 保存内容到localstorage，方便下次打开时恢复
+    editor.value?.commands.setContent(html)
+    // Save after generation
     if (editor.value && currentDataset.value) {
-      dashboardStore.saveReportContent(
-        currentDataset.value.id,
-        editor.value.getJSON() ////将html字符串转换为TipTap的JSON格式存储
-      );
+      dashboardStore.saveReportContent(currentDataset.value.id, editor.value.getJSON())
     }
   } catch (e) {
-    error.value = "AI 报告生成失败，请重试";
-    console.error(e);
+    error.value = 'AI 报告生成失败，请重试'
+    console.error(e)
   } finally {
-    loading.value = false;
+    loading.value = false
   }
 }
 
-// 点击左侧列表栏 → 插入一个图表
+// Insert a chart embed at cursor
 function insertChart(chart: ChartConfig) {
-  if (!editor.value) return;
-  editor.value
-    .chain()
-    .focus()
-    .insertContent({
-      type: "chartEmbed", // 通过这个就能触发 ChartEmbedExtension 里的 VueNodeViewRenderer 来渲染组件了
-      attrs: {
-        chartId: chart.id,
-        chartTitle: chart.title,
-        chartType: chart.type,
-      },
-    })
-    .run();
+  if (!editor.value) return
+  editor.value.chain().focus().insertContent({
+    type: 'chartEmbed',
+    attrs: {
+      chartId: chart.id,
+      chartTitle: chart.title,
+      chartType: chart.type,
+    },
+  }).run()
 }
 
-// 导航退回
+// Navigate back
 function goBack() {
-  router.push("/");
+  router.push('/')
 }
 
-// 防抖保存分析报告
-let saveTimer: ReturnType<typeof setTimeout> | null = null;
+// Auto-save editor content with debounce
+let saveTimer: ReturnType<typeof setTimeout> | null = null
 
 function setupAutoSave() {
-  if (!editor.value) return;
-  editor.value.on("update", () => {
-    if (saveTimer) clearTimeout(saveTimer);
+  if (!editor.value) return
+  editor.value.on('update', () => {
+    if (saveTimer) clearTimeout(saveTimer)
     saveTimer = setTimeout(() => {
       if (editor.value && currentDataset.value) {
-        dashboardStore.saveReportContent(
-          currentDataset.value.id,
-          editor.value.getJSON()
-        );
+        dashboardStore.saveReportContent(currentDataset.value.id, editor.value.getJSON())
       }
-    }, 2000);
-  });
+    }, 2000)
+  })
 }
 
-// 进入编辑器页面的初始化
 onMounted(() => {
   if (!currentDataset.value) {
-    error.value = "未选择数据集，请先返回选择数据集";
-    return;
+    error.value = '未选择数据集，请先返回选择数据集'
+    return
   }
 
-  // 恢复已有报告，如果有的话
-  const saved = dashboardStore.getReportContent(currentDataset.value.id);
+  // Check if saved content exists for this dataset
+  const saved = dashboardStore.getReportContent(currentDataset.value.id)
   if (saved) {
     // Restore saved content instead of re-generating
     nextTick(() => {
       if (editor.value) {
-        editor.value.commands.setContent(saved.content);
+        editor.value.commands.setContent(saved.content)
       }
-    });
+    })
   } else {
-    //  首次进入，调 AI 生成报告
-    handleGenerateReport();
+    handleGenerateReport()
   }
 
-  // 设置自动保存
-  nextTick(() => setupAutoSave()); ////
-});
+  // Set up auto-save after editor is ready
+  nextTick(() => setupAutoSave())
+})
 
 onUnmounted(() => {
-  if (saveTimer) clearTimeout(saveTimer);
-});
+  if (saveTimer) clearTimeout(saveTimer)
+})
 
-// 获取图表对应icon
+// Chart type icon
 function chartIcon(type: string) {
   const map: Record<string, string> = {
-    bar: "📊",
-    line: "📈",
-    pie: "🥧",
-    scatter: "🔵",
-  };
-  return map[type] || "📊";
+    bar: '📊',
+    line: '📈',
+    pie: '🥧',
+    scatter: '🔵',
+  }
+  return map[type] || '📊'
 }
 
-// #region PDF导出
+// Export PDF
 async function exportPDF() {
-  const proseMirror = document.querySelector(
-    ".ProseMirror"
-  ) as HTMLElement | null;
-  if (!proseMirror || !currentDataset.value) return;
+  const proseMirror = document.querySelector('.ProseMirror') as HTMLElement | null
+  if (!proseMirror || !currentDataset.value) return
 
-  exporting.value = true;
+  exporting.value = true
 
   try {
-    //  await import() 是动态导入——用户点击导出按钮时才下载这两个库，不会影响编辑器打开速度。
-    // 把 HTML 元素截成一张图片
-    const { default: html2canvas } = await import("html2canvas");
-    // 创建 PDF 文件，往里面贴图片
-    const { jsPDF } = await import("jspdf");
+    const { default: html2canvas } = await import('html2canvas')
+    const { jsPDF } = await import('jspdf')
 
     const canvas = await html2canvas(proseMirror, {
-      scale: 2, // 2 倍清晰度
-      useCORS: true, // 允许截图中包含跨域图片
-      backgroundColor: "#ffffff",
+      scale: 2,
+      useCORS: true,
+      backgroundColor: '#ffffff',
       logging: false,
-    });
+    })
 
-    //  canvas.toDataURL("image/png") 把 Canvas 转成一长串 base64编码的图片数据。这个字符串可以传给 jsPDF。
-    const imgData = canvas.toDataURL("image/png");
-    // 三个参数：纵向  单位毫米  纸张大小
-    const pdf = new jsPDF("p", "mm", "a4");
-    //  A4 宽 210mm ≈ 21cm
-    const pdfWidth = 210;
-    // A4 高 297mm ≈ 29.7cm
-    const pdfHeight = 297;
-    // 左右各留 8mm 边距，图片宽194mm
-    const imgWidth = pdfWidth - 16;
-    //  按比例计算图片在 PDF 中的高度，等比缩放，不变形
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    const imgData = canvas.toDataURL('image/png')
+    const pdf = new jsPDF('p', 'mm', 'a4')
+    const pdfWidth = 210
+    const pdfHeight = 297
+    const imgWidth = pdfWidth - 16 // 8mm margins
+    const imgHeight = (canvas.height * imgWidth) / canvas.width
 
-    let heightLeft = imgHeight;
-    let position = 0;
+    let heightLeft = imgHeight
+    let position = 0
 
-    // 第一页：position = 0，图片顶部对齐PDF顶部
-    const xOffset = 8;
-    pdf.addImage(imgData, "PNG", xOffset, position, imgWidth, imgHeight);
-    heightLeft -= pdfHeight;
+    // Center image horizontally with 8mm left margin
+    const xOffset = 8
+    pdf.addImage(imgData, 'PNG', xOffset, position, imgWidth, imgHeight)
+    heightLeft -= pdfHeight
 
-    // 后续页：把图片往上移，显示剩余部分
     while (heightLeft > 0) {
-      // 图片往上移一页
-      position -= pdfHeight;
-      // 新建一页
-      pdf.addPage();
-      pdf.addImage(imgData, "PNG", xOffset, position, imgWidth, imgHeight);
-      heightLeft -= pdfHeight;
+      position -= pdfHeight
+      pdf.addPage()
+      pdf.addImage(imgData, 'PNG', xOffset, position, imgWidth, imgHeight)
+      heightLeft -= pdfHeight
     }
 
-    // 下载：浏览器弹出下载对话框，文件名如 员工数据_分析报告.pdf。
-    pdf.save(`${currentDataset.value.name}_分析报告.pdf`);
+    pdf.save(`${currentDataset.value.name}_分析报告.pdf`)
   } catch (e) {
-    console.error("PDF 导出失败", e);
-    error.value = "PDF 导出失败，请重试";
+    console.error('PDF 导出失败', e)
+    error.value = 'PDF 导出失败，请重试'
   } finally {
-    exporting.value = false;
+    exporting.value = false
   }
 }
-//#endregion
 </script>
 
 <template>
@@ -245,7 +214,7 @@ async function exportPDF() {
     <header class="editor-header">
       <button class="btn-back" @click="goBack">← 返回</button>
       <h2 class="report-title">
-        {{ currentDataset?.name || "数据分析报告" }}
+        {{ currentDataset?.name || '数据分析报告' }}
       </h2>
       <div class="header-actions">
         <button
@@ -253,10 +222,10 @@ async function exportPDF() {
           :disabled="loading"
           @click="handleGenerateReport"
         >
-          {{ loading ? "⏳ 生成中..." : "🔄 重新生成" }}
+          {{ loading ? '⏳ 生成中...' : '🔄 重新生成' }}
         </button>
         <button class="btn btn-export" :disabled="exporting" @click="exportPDF">
-          {{ exporting ? "⏳ 导出中..." : "📄 导出 PDF" }}
+          {{ exporting ? '⏳ 导出中...' : '📄 导出 PDF' }}
         </button>
       </div>
     </header>
@@ -264,13 +233,7 @@ async function exportPDF() {
     <!-- Error banner -->
     <div v-if="error" class="error-banner">
       {{ error }}
-      <button
-        v-if="currentDataset"
-        class="retry-link"
-        @click="handleGenerateReport"
-      >
-        重试
-      </button>
+      <button v-if="currentDataset" class="retry-link" @click="handleGenerateReport">重试</button>
     </div>
 
     <!-- Main layout -->
@@ -289,9 +252,7 @@ async function exportPDF() {
           <span class="chart-icon">{{ chartIcon(chart.type) }}</span>
           <div class="chart-info">
             <div class="chart-card-title">{{ chart.title }}</div>
-            <div class="chart-card-meta">
-              {{ chart.xAxis }} × {{ chart.yAxis }}
-            </div>
+            <div class="chart-card-meta">{{ chart.xAxis }} × {{ chart.yAxis }}</div>
           </div>
         </div>
 
@@ -427,7 +388,7 @@ async function exportPDF() {
   flex-direction: column;
   height: 100vh;
   background: #f5f5f5;
-  font-family: "PingFang SC", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-family: 'PingFang SC', 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
 /* Header */
@@ -690,9 +651,7 @@ async function exportPDF() {
 }
 
 @keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+  to { transform: rotate(360deg); }
 }
 
 .loading-overlay p {

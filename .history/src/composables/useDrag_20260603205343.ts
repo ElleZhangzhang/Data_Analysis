@@ -50,16 +50,15 @@ export function useDrag(
 
     // 步骤4.1: 读取并缓存布局信息，避免在 mousemove 中重复触发回流
     const target = targetRef.value // 外层container
-    const container = target?.parentElement // 放所有图表的大容器
+    const container = target?.parentElement // window
     if (target && container) {
       maxX = container.clientWidth - target.clientWidth
+      maxY = container.clientHeight - target.clientHeight
 
       const childRect = target.getBoundingClientRect()
       const parentRect = container.getBoundingClientRect()
       minX = 0
       minY = parentRect.top - childRect.top
-      // maxY = 初始偏移量(minY是负值) + 容器可用空间
-      maxY = minY + container.clientHeight - target.clientHeight
       hasBounds = true
     } else {
       hasBounds = false
@@ -85,6 +84,12 @@ export function useDrag(
     let newX = initialX + deltaX
     let newY = initialY + deltaY
 
+    // 网格吸附（可选）
+    // if (gridSize > 1) {
+    //   newX = Math.round(newX / gridSize) * gridSize
+    //   newY = Math.round(newY / gridSize) * gridSize
+    // }
+
     // 边界限制（防止拖出容器）
     // 提示: 容器是 targetRef.value?.parentElement
     // 注意：查一下当前目标元素的parentElement
@@ -92,6 +97,7 @@ export function useDrag(
       newX = Math.max(minX, Math.min(newX, maxX))
       newY = Math.max(minY, Math.min(newY, maxY))
     }
+
 
     // 更新位置
     position.value = { x: newX, y: newY }

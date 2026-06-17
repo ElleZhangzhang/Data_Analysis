@@ -37,7 +37,7 @@ export const ChartEmbedExtension = Node.create({
     return [{ tag: 'div[data-chart-id]' }]
   },
 
-  // 2. 外部 renderHTML将内部renderHTML返回对象合并到 DOM 标签中：输出<div data-chart- id="123">...</div>
+  // 2. 外部 renderHTML 将其合并到 DOM 标签中 ➡️ 最终输出<div data- chart - id="123" class= "chart-embed-node" >...</div>
   renderHTML({ HTMLAttributes }: { HTMLAttributes: Record<string, any> }) {
     const chartTitle = HTMLAttributes['chartTitle'] as string || '图表'
     const chartType = HTMLAttributes['chartType'] as string || 'chart'

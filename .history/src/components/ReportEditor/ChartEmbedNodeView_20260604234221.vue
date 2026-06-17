@@ -27,7 +27,7 @@ const dataset = computed(() => {
 let chartInstance: ECharts | null = null;
 let resizeObserver: ResizeObserver | null = null;
 
-// 均匀采样
+// 采样
 const MAX_POINTS = 1000;
 function sampleCategorySeries(
   xData: (string | number)[],
@@ -43,7 +43,7 @@ function sampleCategorySeries(
   }
   return { xData: sampledX, yData: sampledY, sampled: true };
 }
-// 分箱
+
 function buildBinningSeries(data: DataRow[], field: string, binCount = 8) {
   const values = data
     .map((row) => Number(row[field]))

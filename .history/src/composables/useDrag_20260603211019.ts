@@ -53,13 +53,12 @@ export function useDrag(
     const container = target?.parentElement // 放所有图表的大容器
     if (target && container) {
       maxX = container.clientWidth - target.clientWidth
+      maxY = container.clientHeight - target.clientHeight
 
       const childRect = target.getBoundingClientRect()
       const parentRect = container.getBoundingClientRect()
       minX = 0
       minY = parentRect.top - childRect.top
-      // maxY = 初始偏移量(minY是负值) + 容器可用空间
-      maxY = minY + container.clientHeight - target.clientHeight
       hasBounds = true
     } else {
       hasBounds = false

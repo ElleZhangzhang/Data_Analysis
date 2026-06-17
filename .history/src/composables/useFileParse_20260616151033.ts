@@ -30,7 +30,7 @@ export function useFileParser() {
           return
         }
 
-        dataStore.addDataset(payload.dataset) // 没有await，这会导致微任务会为同步任务让步，也就是先将upsertDatasetToDB放入任务队列，然后先执行下面的代码
+        dataStore.addDataset(payload.dataset) // 没有await，这会导致微任务会为同步任务让步，也就是先将upsertDatasetToDB放入任务队列，而是先执行下面的代码
         cleanup()
         resolve(payload.dataset)
       }

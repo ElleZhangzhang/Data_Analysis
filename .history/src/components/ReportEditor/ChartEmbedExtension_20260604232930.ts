@@ -13,9 +13,8 @@ export const ChartEmbedExtension = Node.create({
     return {
       chartId: {
         default: null,
-        // 2. 内部parseHTML得出chartId = 'data-chart-id'的值
+        // parseHTML匹配规则
         parseHTML: (el: HTMLElement) => el.getAttribute('data-chart-id'),
-        // 1. 内部 renderHTML 将 chartId = "123" 转换为 { 'data-chart-id': '123' }
         renderHTML: (attrs: Record<string, any>) => ({ 'data-chart-id': attrs.chartId }),
       },
       chartTitle: {
@@ -31,13 +30,10 @@ export const ChartEmbedExtension = Node.create({
     }
   },
 
-  // 遇到什么样的 HTML 标签时，应该把它识别为 chartEmbed 节点：
-  // 1. 外部parseHTML 匹配到 <div data-chart-id="123">
   parseHTML() {
     return [{ tag: 'div[data-chart-id]' }]
   },
 
-  // 2. 外部 renderHTML将内部renderHTML返回对象合并到 DOM 标签中：输出<div data-chart- id="123">...</div>
   renderHTML({ HTMLAttributes }: { HTMLAttributes: Record<string, any> }) {
     const chartTitle = HTMLAttributes['chartTitle'] as string || '图表'
     const chartType = HTMLAttributes['chartType'] as string || 'chart'

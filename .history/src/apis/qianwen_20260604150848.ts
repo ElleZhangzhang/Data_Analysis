@@ -11,34 +11,6 @@ type Recommendation = {
 
 const CHART_TYPES = new Set(['bar', 'line', 'pie', 'scatter'])
 
-// 带指数退避的 fetch 重试
-async function requestWithRetry(url: string, options: RequestInit, maxRetries = 3): Promise<Response> {
-  for (let i = 0; ; i++) {
-    try {
-      const res = await fetch(url, options)
-      if (res.ok) return res
-      // 仅重试 429(限流) 和 5xx(服务端错误)
-      if ((res.status === 429 || res.status >= 500) && i < maxRetries) {
-        const delay = Math.min(1000 * 2 ** i, 8000)
-        console.warn(`API ${res.status}，第${i + 1}次重试，等待${delay}ms...`)
-        await new Promise(r => setTimeout(r, delay))
-        continue
-      }
-      // 非可重试错误 → 读 body 抛异常，让调用方看到具体错误信息
-      const body = await res.text()
-      throw new Error(`API ${res.status}: ${body.slice(0, 200)}`)
-    } catch (err) {
-      if (i < maxRetries) {
-        const delay = Math.min(1000 * 2 ** i, 8000)
-        console.warn(`网络错误，第${i + 1}次重试，等待${delay}ms...`, err)
-        await new Promise(r => setTimeout(r, delay))
-        continue
-      }
-      throw err
-    }
-  }
-}
-
 // #region AI推荐相关函数
 // 确定ai推荐的x、y轴合法
 function normalizeFieldName(field: string, columns: ColumnDef[]): string {
@@ -151,11 +123,11 @@ ${JSON.stringify(dataDescription, null, 2)}
 1. 输出 3 条推荐，图表类型只能是 bar、line、pie、scatter。
 2. 每条都必须给出：type、title、xAxis、yAxis、reason。
 3. xAxis、yAxis 必须来自已有字段名。
-4. 唯一率接近0的，适合用 pie ；唯一率接近1且都是数值的，适合用 scatter 来分析关系，或用bar展示统计区间分，或用line展示数据变化。
-4. 如果适合做“数值关系分析”图表，如年龄-工资，那么优先 scatter。
-5. 如果适合做区间分布，如“工资区间有多少人”这样的分析，至少一条加入 transform.binning：
+4. 至少一条是“数值关系分析”（如年龄-工资，优先 scatter）。
+5. 如果适合做区间分布，至少一条加入 transform.binning：
    { "field": "某数值字段", "binCount": 8 }
-6. 注意饼图仅用于少类别占比场景，防止灾难饼图。
+   这用于“工资区间有多少人”这种分析。
+6. 饼图仅用于少类别占比场景。
 7. 只返回 JSON，不要 markdown，不要其他文字。
 
 返回格式示例：
@@ -186,7 +158,7 @@ ${JSON.stringify(dataDescription, null, 2)}
 
   // 步骤3: 调用 API
   try {
-    const res = await requestWithRetry("/api/compatible-mode/v1/chat/completions", {
+    const res = await fetch("/api/compatible-mode/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -207,7 +179,8 @@ ${JSON.stringify(dataDescription, null, 2)}
 
     // 步骤4: 解析返回的 JSON
     // 提示：AI 返回可能包含 ```json 标记，需要清理
-    const data = await res.json()  // 先把 Response 转成 JSON
+    const data = await res.json()  // ✅ 先把 Response 转成 JSON
+    console.log('data: ', data);
 
     const content = data.choices[0].message.content  // ✅ 再取出 AI 的文本
     const cleanedResponse = content.replace(/```json|```/g, '').trim()
@@ -238,8 +211,6 @@ export async function generateReport(
   sampleData: DataRow[],
   charts: ChartConfig[]
 ) {
-
-  // 1. 数据准备 --后续放到prompt内
   const dataDescription = statsToText(columns, sampleData) ////
   const chartList = charts.map((c, i) =>
     `- 图表"${c.title}"(c${i}): X轴=${c.xAxis}, Y轴=${c.yAxis}，类型=${c.type}`
@@ -247,9 +218,6 @@ export async function generateReport(
   // - 图表"年龄与工资关系"(c0): X轴=age, Y轴=salary，类型=scatter
   // - 图表"工资分布"(c1): X轴=salary, Y轴=salary，类型=bar
 
-
-
-  // 2. 构建prompt
   const prompt = `你是专业数据分析报告撰写专家。根据以下数据集信息和图表，生成一份完整的数据分析报告。
 
 ## 数据集：${datasetName}
@@ -275,7 +243,7 @@ ${chartList}
 6. 不要在图表 div 中写额外文字，空着就好。`
 
   try {
-    const res = await requestWithRetry("/api/compatible-mode/v1/chat/completions", {
+    const res = await fetch("/api/compatible-mode/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

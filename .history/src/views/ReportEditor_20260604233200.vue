@@ -78,11 +78,11 @@ async function handleGenerateReport() {
     });
 
     editor.value?.commands.setContent(html); ////
-    // 保存内容到localstorage，方便下次打开时恢复
+    // Save after generation
     if (editor.value && currentDataset.value) {
       dashboardStore.saveReportContent(
         currentDataset.value.id,
-        editor.value.getJSON() ////将html字符串转换为TipTap的JSON格式存储
+        editor.value.getJSON() ////
       );
     }
   } catch (e) {
@@ -93,14 +93,14 @@ async function handleGenerateReport() {
   }
 }
 
-// 点击左侧列表栏 → 插入一个图表
+// 插入一个图表
 function insertChart(chart: ChartConfig) {
   if (!editor.value) return;
   editor.value
     .chain()
     .focus()
     .insertContent({
-      type: "chartEmbed", // 通过这个就能触发 ChartEmbedExtension 里的 VueNodeViewRenderer 来渲染组件了
+      type: "chartEmbed",
       attrs: {
         chartId: chart.id,
         chartTitle: chart.title,
@@ -110,12 +110,12 @@ function insertChart(chart: ChartConfig) {
     .run();
 }
 
-// 导航退回
+// Navigate back
 function goBack() {
   router.push("/");
 }
 
-// 防抖保存分析报告
+// Auto-save editor content with debounce
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
 
 function setupAutoSave() {
@@ -133,7 +133,6 @@ function setupAutoSave() {
   });
 }
 
-// 进入编辑器页面的初始化
 onMounted(() => {
   if (!currentDataset.value) {
     error.value = "未选择数据集，请先返回选择数据集";
@@ -155,14 +154,14 @@ onMounted(() => {
   }
 
   // 设置自动保存
-  nextTick(() => setupAutoSave()); ////
+  nextTick(() => setupAutoSave());
 });
 
 onUnmounted(() => {
   if (saveTimer) clearTimeout(saveTimer);
 });
 
-// 获取图表对应icon
+// Chart type icon
 function chartIcon(type: string) {
   const map: Record<string, string> = {
     bar: "📊",
@@ -183,51 +182,38 @@ async function exportPDF() {
   exporting.value = true;
 
   try {
-    //  await import() 是动态导入——用户点击导出按钮时才下载这两个库，不会影响编辑器打开速度。
-    // 把 HTML 元素截成一张图片
     const { default: html2canvas } = await import("html2canvas");
-    // 创建 PDF 文件，往里面贴图片
     const { jsPDF } = await import("jspdf");
 
     const canvas = await html2canvas(proseMirror, {
-      scale: 2, // 2 倍清晰度
-      useCORS: true, // 允许截图中包含跨域图片
+      scale: 2,
+      useCORS: true,
       backgroundColor: "#ffffff",
       logging: false,
     });
 
-    //  canvas.toDataURL("image/png") 把 Canvas 转成一长串 base64编码的图片数据。这个字符串可以传给 jsPDF。
     const imgData = canvas.toDataURL("image/png");
-    // 三个参数：纵向  单位毫米  纸张大小
     const pdf = new jsPDF("p", "mm", "a4");
-    //  A4 宽 210mm ≈ 21cm
     const pdfWidth = 210;
-    // A4 高 297mm ≈ 29.7cm
     const pdfHeight = 297;
-    // 左右各留 8mm 边距，图片宽194mm
-    const imgWidth = pdfWidth - 16;
-    //  按比例计算图片在 PDF 中的高度，等比缩放，不变形
+    const imgWidth = pdfWidth - 16; // 8mm margins
     const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
     let heightLeft = imgHeight;
     let position = 0;
 
-    // 第一页：position = 0，图片顶部对齐PDF顶部
+    // Center image horizontally with 8mm left margin
     const xOffset = 8;
     pdf.addImage(imgData, "PNG", xOffset, position, imgWidth, imgHeight);
     heightLeft -= pdfHeight;
 
-    // 后续页：把图片往上移，显示剩余部分
     while (heightLeft > 0) {
-      // 图片往上移一页
       position -= pdfHeight;
-      // 新建一页
       pdf.addPage();
       pdf.addImage(imgData, "PNG", xOffset, position, imgWidth, imgHeight);
       heightLeft -= pdfHeight;
     }
 
-    // 下载：浏览器弹出下载对话框，文件名如 员工数据_分析报告.pdf。
     pdf.save(`${currentDataset.value.name}_分析报告.pdf`);
   } catch (e) {
     console.error("PDF 导出失败", e);

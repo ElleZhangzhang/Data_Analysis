@@ -43,7 +43,7 @@ function sampleCategorySeries(
   }
   return { xData: sampledX, yData: sampledY, sampled: true };
 }
-// 分箱
+
 function buildBinningSeries(data: DataRow[], field: string, binCount = 8) {
   const values = data
     .map((row) => Number(row[field]))
