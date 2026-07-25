@@ -34,13 +34,26 @@ async function requestWithRetry(
 ): Promise<Response> {
   for (let i = 0; ; i++) {
     try {
+      // 1.
+      // (1) 成功 → 直接返回
       const res = await fetch(url, options)
       if (res.ok) return res
-      // 仅重试 429(限流) 和 5xx(服务端错误)
+
+      // (2) 429/5xx → 重试，指数退避
       if ((res.status === 429 || res.status >= 500) && i < maxRetries) {
         const delay = Math.min(1000 * 2 ** i, 8000)
+
+        // 2.
+        // (1) 通知UI正在尝试重试
         onRetry?.(i + 1, maxRetries)
         console.warn(`API ${res.status}，第${i + 1}次重试，等待${delay}ms...`)
+
+        // (2) 让代码停 delay ms
+        // Promise讲解：
+        // 1. Promise：顾名思义，是一种承诺。承诺什么呢？Promise内的回调函数如果执行成功了，承诺返回成功的值；如果执行失败了，承诺返回失败的原因
+        // 2. 那么为什么要设置一个承诺呢？因为后续的代码需要依赖当前的执行结果，所以给了一个承诺，方便之后通知后续代码。
+        // 3. 如果这里不包装成Promise会发生什么？当执行到setTimeout时，浏览器在背后倒计时delay ms，与此同时，继续执行接下来的同步代码，也就是执行下一次的await fetch，这就意味着不停地发送了请求，而不是等待了delay ms再发送请求
+        // 4. 包装成Promise就能解决3的问题了吗？是的，包装成Promise后，await会等待Promise的结果返回后再继续执行后续代码，也就是等待了delay ms再发送请求
         await new Promise(r => setTimeout(r, delay))
         continue
       }

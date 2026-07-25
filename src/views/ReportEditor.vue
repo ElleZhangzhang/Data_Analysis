@@ -10,7 +10,7 @@ import { TableCell } from "@tiptap/extension-table-cell";
 import { TableHeader } from "@tiptap/extension-table-header";
 import { useDataStore } from "@/stores/data";
 import { useDashboardStore } from "@/stores/dashboard";
-import { generateReport } from "@/apis/qianwen";
+import { generateReport, getUserFriendlyMessage } from "@/apis/qianwen";
 import { ChartEmbedExtension } from "@/components/ReportEditor/ChartEmbedExtension";
 import type { ChartConfig } from "@/types";
 
@@ -19,6 +19,7 @@ const dataStore = useDataStore();
 const dashboardStore = useDashboardStore();
 
 const loading = ref(false);
+const retryText = ref("");
 const error = ref("");
 const exporting = ref(false);
 
@@ -59,13 +60,17 @@ async function handleGenerateReport() {
 
   loading.value = true;
   error.value = "";
+  retryText.value = "";
 
   try {
     let html = await generateReport(
       currentDataset.value.name,
       currentDataset.value.columns,
       currentDataset.value.rows.slice(0, 100),
-      charts.value
+      charts.value,
+      (attempt, max) => {
+        retryText.value = `连接异常，正在重试 (${attempt}/${max})...`;
+      }
     );
 
     // 将 AI 返回的 data-chart-id="c0" / "c1" 等替换为实际的 chart UUID
@@ -86,10 +91,12 @@ async function handleGenerateReport() {
       );
     }
   } catch (e) {
-    error.value = "AI 报告生成失败，请重试";
+    const friendlyMsg = getUserFriendlyMessage(e);
+    error.value = `AI 报告生成失败：${friendlyMsg}`;
     console.error(e);
   } finally {
     loading.value = false;
+    retryText.value = "";
   }
 }
 
@@ -403,7 +410,7 @@ async function exportPDF() {
         <!-- Loading overlay -->
         <div v-if="loading" class="loading-overlay">
           <div class="loading-spinner"></div>
-          <p>AI 正在分析数据并生成报告...</p>
+          <p>{{ retryText || "AI 正在分析数据并生成报告..." }}</p>
         </div>
 
         <!-- PDF export overlay -->

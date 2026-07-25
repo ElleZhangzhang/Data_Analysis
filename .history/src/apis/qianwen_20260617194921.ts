@@ -34,13 +34,19 @@ async function requestWithRetry(
 ): Promise<Response> {
   for (let i = 0; ; i++) {
     try {
+      // 成功 → 直接返回
       const res = await fetch(url, options)
       if (res.ok) return res
-      // 仅重试 429(限流) 和 5xx(服务端错误)
+
+      // 429/5xx → 重试，指数退避
       if ((res.status === 429 || res.status >= 500) && i < maxRetries) {
         const delay = Math.min(1000 * 2 ** i, 8000)
+
+        // 1. 通知UI正在尝试重试
         onRetry?.(i + 1, maxRetries)
         console.warn(`API ${res.status}，第${i + 1}次重试，等待${delay}ms...`)
+
+        // 2. 让代码停 delay ms
         await new Promise(r => setTimeout(r, delay))
         continue
       }

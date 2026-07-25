@@ -3,7 +3,7 @@ import { ref, computed } from "vue";
 import { storeToRefs } from "pinia";
 import { useDataStore } from "@/stores/data";
 import { useDashboardStore } from "@/stores/dashboard";
-import { recommendCharts } from "@/apis/qianwen";
+import { recommendCharts, fallbackRecommendCharts, getUserFriendlyMessage } from "@/apis/qianwen";
 import type { ChartConfig, ChartTransform } from "@/types";
 
 type Recommendation = {
@@ -30,6 +30,7 @@ const { currentDataset } = storeToRefs(dataStore);
 
 // TODO: 状态定义
 const loading = ref(false);
+const retryText = ref(""); // 重试进度文字
 const recommendations = ref<Recommendation[]>([]); // AI 推荐结果
 
 // 获取 AI 推荐（优先使用缓存）
@@ -47,20 +48,40 @@ const fetchRecommendations = async (force = false) => {
   }
 
   loading.value = true;
+  retryText.value = "";
   try {
-    // 调用 AI API
+    // 调用 AI API（传入重试进度回调）
     const result = await recommendCharts(
       currentDataset.value.columns,
-      currentDataset.value.rows.slice(0, 50) // 扩大样本，提升推荐稳定性
+      currentDataset.value.rows.slice(0, 50), // 扩大样本，提升推荐稳定性
+      (attempt, max) => {
+        retryText.value = `连接异常，正在重试 (${attempt}/${max})...`;
+      }
     );
 
     recommendations.value = result;
     // 写入缓存
     dashboardStore.saveRecommendations(currentDataset.value.id, result);
+    ElMessage.success("AI 推荐成功");
   } catch (error) {
-    alert("AI 推荐失败：" + (error as Error).message);
+    console.error('AI 推荐失败:', error);
+    const friendlyMsg = getUserFriendlyMessage(error);
+    ElMessage.error(`AI 推荐失败：${friendlyMsg}`);
+
+    // 兜底：用规则引擎给出基础推荐
+    if (currentDataset.value) {
+      const fallback = fallbackRecommendCharts(
+        currentDataset.value.columns,
+        currentDataset.value.rows.slice(0, 50)
+      );
+      if (fallback.length > 0) {
+        recommendations.value = fallback;
+        ElMessage.info("已使用规则推荐作为备选方案");
+      }
+    }
   } finally {
     loading.value = false;
+    retryText.value = "";
   }
 };
 
@@ -124,7 +145,7 @@ watch(
         <!-- TODO: 加载状态 -->
         <div v-if="loading" class="loading-state">
           <div class="spinner"></div>
-          <p>AI 正在分析数据...</p>
+          <p>{{ retryText || "AI 正在分析数据..." }}</p>
         </div>
 
         <!-- TODO: 推荐列表 -->
