@@ -11,12 +11,10 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
-    AIInsight: typeof import('./src/components/AIAnalysis/AIInsight.vue')['default']
     BaseChart: typeof import('./src/components/Charts/BaseChart.vue')['default']
     ChartConfigDialog: typeof import('./src/components/Charts/ChartConfigDialog.vue')['default']
     ChartEmbedNodeView: typeof import('./src/components/ReportEditor/ChartEmbedNodeView.vue')['default']
     ChartRecommendDialog: typeof import('./src/components/Charts/ChartRecommendDialog.vue')['default']
-    ChartWidget: typeof import('./src/components/Dashboard/ChartWidget.vue')['default']
     ElTooltip: typeof import('element-plus/es')['ElTooltip']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']

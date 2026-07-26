@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, watch } from 'vue'
+import { ref, shallowRef, watch } from 'vue'
 import type { Dataset } from '@/types/index.ts'
 
 import {
@@ -12,8 +12,8 @@ import {
 const LAST_DATASET_KEY = 'lastDatasetId'
 
 export const useDataStore = defineStore('data', () => {
-  const datasets = ref<Dataset[]>([])
-  const currentDataset = ref<Dataset | null>(null)
+  const datasets = shallowRef<Dataset[]>([])
+  const currentDataset = shallowRef<Dataset | null>(null)
 
   // IndexedDB 初始化回填
   //#region
@@ -51,7 +51,7 @@ export const useDataStore = defineStore('data', () => {
   async function addDataset(data: Dataset): Promise<boolean> {
     try {
       await upsertDatasetToDB(data)
-      datasets.value.push({ ...data, rows: [] })
+      datasets.value = [...datasets.value, { ...data, rows: [] }]
       return true
     } catch (e) {
       console.error('数据集持久化失败:', e)
